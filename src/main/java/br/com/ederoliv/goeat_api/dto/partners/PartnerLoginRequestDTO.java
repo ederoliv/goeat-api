@@ -1,4 +1,4 @@
 package br.com.ederoliv.goeat_api.dto.partners;
 
-public record PartnerLoginRequestDTO() {
+public record PartnerLoginRequestDTO(String name) {
 }
