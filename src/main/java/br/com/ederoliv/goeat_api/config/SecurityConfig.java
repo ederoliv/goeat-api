@@ -45,18 +45,19 @@ public class SecurityConfig {
                         // Endpoints públicos
                         .requestMatchers("/authenticate").permitAll()
                         .requestMatchers(HttpMethod.GET, "api/v1/partners").permitAll()
-                        .requestMatchers("api/v1/partners/{id}").permitAll()
+                        .requestMatchers("/api/v1/partners/{id}").permitAll()
                         .requestMatchers("/api/v1/clients/register").permitAll()
                         .requestMatchers("/api/v1/clients/login").permitAll()
                         .requestMatchers("/api/v1/partners/register").permitAll()
                         .requestMatchers("/api/v1/partners/login").permitAll()
+                        .requestMatchers("/api/v1/menus/{menuId}/categories").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/partners").permitAll()
 
                         // Endpoints protegidos por role
                         .requestMatchers("/api/v1/partners/{id}/orders/**").hasAnyRole("CLIENT", "PARTNER")
-                        .requestMatchers("/api/v1/orders/**").hasRole("PARTNER")
                         .requestMatchers("/api/v1/partners/{id}/products/**").hasAnyRole("CLIENT", "PARTNER")
                         .requestMatchers("/api/v1/partners/{id}/categories/**").hasRole("PARTNER")
+                        .requestMatchers("/api/v1/orders/**").hasRole("PARTNER")
                         .requestMatchers("/api/v1/products/**").hasRole("PARTNER")
                         .requestMatchers("/api/v1/supports/**").hasAnyRole("CLIENT", "PARTNER")
 
