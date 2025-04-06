@@ -6,10 +6,16 @@ import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.access.annotation.Secured;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -31,13 +37,32 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(
-                        auth -> auth.requestMatchers("/authenticate").permitAll()
-                                .anyRequest().authenticated())
+        http
+                .csrf(AbstractHttpConfigurer::disable)
+                .cors(Customizer.withDefaults())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        // Endpoints públicos
+                        .requestMatchers("/authenticate").permitAll()
+                        .requestMatchers("/api/v1/clients/register").permitAll()
+                        .requestMatchers("/api/v1/clients/login").permitAll()
+                        .requestMatchers("/api/v1/partners/register").permitAll()
+                        .requestMatchers("/api/v1/partners/login").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/partners").permitAll()
+
+                        // Endpoints protegidos por role
+                        .requestMatchers("/api/v1/partners/{id}/orders/**").hasAnyRole("CLIENT", "PARTNER")
+                        .requestMatchers("/api/v1/orders/**").hasRole("PARTNER")
+                        .requestMatchers("/api/v1/partners/{id}/products/**").hasAnyRole("CLIENT", "PARTNER")
+                        .requestMatchers("/api/v1/partners/{id}/categories/**").hasRole("PARTNER")
+                        .requestMatchers("/api/v1/products/**").hasRole("PARTNER")
+                        .requestMatchers("/api/v1/supports/**").hasAnyRole("CLIENT", "PARTNER")
+
+                        // Qualquer outra requisição precisa de autenticação
+                        .anyRequest().authenticated())
                 .httpBasic(Customizer.withDefaults())
-                .oauth2ResourceServer(
-                        conf -> conf.jwt(Customizer.withDefaults()));
+                .oauth2ResourceServer(conf -> conf.jwt(Customizer.withDefaults()));
+
         return http.build();
     }
 
@@ -56,5 +81,15 @@ public class SecurityConfig {
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(
+            UserDetailsService userDetailsService,
+            PasswordEncoder passwordEncoder) {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder);
+        return new ProviderManager(provider);
     }
 }
