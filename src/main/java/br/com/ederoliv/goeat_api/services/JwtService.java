@@ -24,7 +24,7 @@ public class JwtService {
 
     public String generateToken(Authentication authentication) {
         Instant now = Instant.now();
-        long expiry = 5L; // 5 segundos hora de expiração
+        long expiry = 120L; //  2 minutos até expirar
 
         // Obtém as authorities do usuário
         String scopes = authentication.getAuthorities().stream()
