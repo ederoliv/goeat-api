@@ -22,9 +22,8 @@ public class CategoryController {
         return ResponseEntity.status(HttpStatus.OK).body(categoryService.listAllCategoriesByMenuId(menuId));
     }
 
-
     @PostMapping
-    public ResponseEntity<?> registerCategory(
+    public ResponseEntity<?> register(
             @PathVariable UUID menuId,
             @RequestBody CategoryRequestDTO request) {
 
@@ -42,7 +41,7 @@ public class CategoryController {
     }
 
     @DeleteMapping("/{categoryId}")
-    public ResponseEntity<?> deleteCategory(
+    public ResponseEntity<?> delete(
             @PathVariable UUID menuId,
             @PathVariable Long categoryId) {
 

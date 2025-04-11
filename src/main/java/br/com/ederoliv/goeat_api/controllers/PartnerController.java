@@ -33,7 +33,7 @@ public class PartnerController {
     private final AuthenticationService authenticationService;
 
     @GetMapping("/{id}")
-    public ResponseEntity<PartnerResponseDTO> getPartner(@PathVariable UUID id) {
+    public ResponseEntity<PartnerResponseDTO> getPartnerById(@PathVariable UUID id) {
         PartnerResponseDTO response = partnerService.getPartnerById(id);
         return ResponseEntity.ok(response);
     }
@@ -43,14 +43,14 @@ public class PartnerController {
         return ResponseEntity.ok(partnerService.listAllPartners());
     }
 
-    @GetMapping("{id}/products")
+    @GetMapping("/{id}/products")
     public ResponseEntity<?> getAllProductsByPartnerId(@PathVariable UUID id) {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(productService.listAllProductsByMenuId(id));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> loginPartner(@RequestBody PartnerLoginRequestDTO request) {
+    public ResponseEntity<?> login(@RequestBody PartnerLoginRequestDTO request) {
         try {
             // Tenta autenticar com o serviço de autenticação
             String token = authenticationService.authenticate(request.email(), request.password());
@@ -78,7 +78,7 @@ public class PartnerController {
     }
 
     @PostMapping
-    public ResponseEntity<?> registerPartner(@RequestBody PartnerRequestDTO request) {
+    public ResponseEntity<?> register(@RequestBody PartnerRequestDTO request) {
         try {
             PartnerResponseDTO savedPartner = partnerService.registerPartner(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(savedPartner);

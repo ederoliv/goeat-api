@@ -23,9 +23,14 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -39,7 +44,7 @@ public class SecurityConfig {
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(Customizer.withDefaults())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Configuração CORS atualizada
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Endpoints públicos
@@ -48,14 +53,15 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/partners/{id}").permitAll()
                         .requestMatchers("/api/v1/clients/register").permitAll()
                         .requestMatchers("/api/v1/clients/login").permitAll()
+                        .requestMatchers("/api/v1/partners/{id}/products/**").permitAll()
                         .requestMatchers("/api/v1/partners/register").permitAll()
                         .requestMatchers("/api/v1/partners/login").permitAll()
-                        .requestMatchers("/api/v1/menus/{menuId}/categories").permitAll()
+                        .requestMatchers(HttpMethod.GET,"/api/v1/menus/{menuId}/categories").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/partners").permitAll()
 
                         // Endpoints protegidos por role
+                        .requestMatchers("/api/v1/menus/{menuId}/categories").hasRole("PARTNER")
                         .requestMatchers("/api/v1/partners/{id}/orders/**").hasAnyRole("CLIENT", "PARTNER")
-                        .requestMatchers("/api/v1/partners/{id}/products/**").hasAnyRole("CLIENT", "PARTNER")
                         .requestMatchers("/api/v1/partners/{id}/categories/**").hasRole("PARTNER")
                         .requestMatchers("/api/v1/orders/**").hasRole("PARTNER")
                         .requestMatchers("/api/v1/products/**").hasRole("PARTNER")
@@ -67,6 +73,27 @@ public class SecurityConfig {
                 .oauth2ResourceServer(conf -> conf.jwt(Customizer.withDefaults()));
 
         return http.build();
+    }
+
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        // Permite requisições do teu frontend
+        configuration.addAllowedOriginPattern("*");
+        // Permite todos os métodos HTTP
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        // Cabeçalhos permitidos
+        configuration.setAllowedHeaders(List.of("*"));
+        // Permite credenciais como cookies e cabeçalhos de autenticação
+        configuration.setAllowCredentials(true);
+        // Expõe os cabeçalhos que você quer que o cliente tenha acesso
+        configuration.setExposedHeaders(List.of("Authorization"));
+        // Define por quanto tempo (em segundos) o navegador pode armazenar em cache a resposta pré-voo
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
     @Bean
