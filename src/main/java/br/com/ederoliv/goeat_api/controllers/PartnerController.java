@@ -43,11 +43,6 @@ public class PartnerController {
         return ResponseEntity.ok(partnerService.listAllPartners());
     }
 
-    @GetMapping("/{id}/products")
-    public ResponseEntity<?> getAllProductsByPartnerId(@PathVariable UUID id) {
-        return ResponseEntity.status(HttpStatus.OK)
-                .body(productService.listAllProductsByMenuId(id));
-    }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody PartnerLoginRequestDTO request) {

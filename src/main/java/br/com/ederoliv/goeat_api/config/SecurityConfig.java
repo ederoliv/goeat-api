@@ -51,24 +51,31 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         // Endpoints públicos
-                        .requestMatchers("/authenticate").permitAll()
-                        .requestMatchers(HttpMethod.GET, "api/v1/partners").permitAll()
+                        //.requestMatchers("/authenticate").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/partners/{partnerId}/products").permitAll()
+                        .requestMatchers(HttpMethod.POST,"/api/v1/partners/login").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/partners/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "api/v1/menus/{menuId}/categories").permitAll()
+
+
+
+/*
                         .requestMatchers("/api/v1/partners/{id}").permitAll()
                         .requestMatchers("/api/v1/clients/register").permitAll()
                         .requestMatchers("/api/v1/clients/login").permitAll()
                         .requestMatchers("/api/v1/partners/{id}/products/**").permitAll()
                         .requestMatchers("/api/v1/partners/register").permitAll()
-                        .requestMatchers("/api/v1/partners/login").permitAll()
+
                         .requestMatchers(HttpMethod.GET,"/api/v1/menus/{menuId}/categories").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/partners").permitAll()
 
-                        // Endpoints protegidos por role
-                        //.requestMatchers(HttpMethod.POST,"/api/v1/menus/{menuId}/categories").hasAuthority("SCOPE_ROLE_PARTNER")
+                         //Endpoints protegidos por role
                         .requestMatchers("/api/v1/partners/{id}/orders/**").hasAnyRole("CLIENT", "PARTNER")
                         .requestMatchers("/api/v1/partners/{id}/categories/**").hasRole("PARTNER")
                         .requestMatchers("/api/v1/orders/**").hasRole("PARTNER")
                         .requestMatchers("/api/v1/products/**").hasRole("PARTNER")
                         .requestMatchers("/api/v1/supports/**").hasAnyRole("CLIENT", "PARTNER")
+*/
 
                         // Qualquer outra requisição precisa de autenticação
                         .anyRequest().authenticated())
