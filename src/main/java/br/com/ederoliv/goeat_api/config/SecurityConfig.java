@@ -11,6 +11,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -34,6 +36,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
     @Value("${jwt.public.key}")
     private RSAPublicKey key;
@@ -60,7 +63,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/v1/partners").permitAll()
 
                         // Endpoints protegidos por role
-                        .requestMatchers("/api/v1/menus/{menuId}/categories").hasRole("PARTNER")
+                        //.requestMatchers(HttpMethod.POST,"/api/v1/menus/{menuId}/categories").hasAuthority("SCOPE_ROLE_PARTNER")
                         .requestMatchers("/api/v1/partners/{id}/orders/**").hasAnyRole("CLIENT", "PARTNER")
                         .requestMatchers("/api/v1/partners/{id}/categories/**").hasRole("PARTNER")
                         .requestMatchers("/api/v1/orders/**").hasRole("PARTNER")

@@ -6,6 +6,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -22,6 +23,7 @@ public class CategoryController {
         return ResponseEntity.status(HttpStatus.OK).body(categoryService.listAllCategoriesByMenuId(menuId));
     }
 
+    @PreAuthorize("hasAuthority('SCOPE_ROLE_PARTNER')")
     @PostMapping
     public ResponseEntity<?> register(
             @PathVariable UUID menuId,
