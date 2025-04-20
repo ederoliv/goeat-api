@@ -31,6 +31,11 @@ public class Client {
     @Column(nullable = false, name = "birth_date")
     private LocalDate birthDate;
 
+    //Relacionamentos
+    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL)
+    @JsonBackReference
+    private List<Address> addresses;
+
     // Relacionamento com User para autenticação
     @OneToOne
     @JoinColumn(name = "user_id")

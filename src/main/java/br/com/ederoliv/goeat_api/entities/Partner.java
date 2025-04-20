@@ -34,6 +34,11 @@ public class Partner {
 
     private String phone;
 
+
+    @OneToOne(mappedBy = "partner", cascade = CascadeType.ALL)
+    @JsonBackReference
+    private Address address;
+
     // Relacionamento com User para autenticação
     @OneToOne
     @JoinColumn(name = "user_id")
