@@ -33,25 +33,39 @@ public class OrderService {
         return convertToOrderResponseDTO(order);
     }
 
-    public OrderResponseDTO createOrder(OrderDTO orderDTO, UUID partnerId) {
-        // Verifica se o cliente existe
-        Client client = clientRepository.findById(orderDTO.clientId())
-                .orElseThrow(() -> new RuntimeException("Client not found"));
 
+    public OrderResponseDTO createOrder(OrderDTO orderDTO, UUID partnerId) {
         // Verifica se o parceiro existe
         Partner partner = partnerRepository.findById(partnerId)
                 .orElseThrow(() -> new RuntimeException("Partner not found"));
 
-        // 3. Criar o pedido
+        // Criar o pedido
         Order order = new Order();
-        order.setClient(client);
         order.setPartner(partner);
-        order.setOrderStatus(StatusType.ESPERANDO);  // Status inicial
+        order.setOrderStatus(StatusType.ESPERANDO);
 
-        // 4. Salvar o pedido no banco (sem itens por enquanto)
+        // Dados comuns para todos os pedidos
+        order.setName(orderDTO.name());
+        order.setEmail(orderDTO.email());
+        order.setPhone(orderDTO.phone());
+        order.setDeliveryAddress(orderDTO.deliveryAddress());
+
+        // Se clientId não for null, é um pedido autenticado
+        if (orderDTO.clientId() != null) {
+            Client client = clientRepository.findById(orderDTO.clientId())
+                    .orElseThrow(() -> new RuntimeException("Client not found"));
+            order.setClient(client);
+            order.setAuthenticated(true);
+        } else {
+            // Caso contrário, é um pedido não autenticado
+            order.setClient(null);
+            order.setAuthenticated(false);
+        }
+
+        // Salvar o pedido inicialmente
         order = orderRepository.save(order);
 
-        // 5. Adicionar os itens ao pedido
+        // Processar os itens do pedido
         List<OrderItem> orderItems = new ArrayList<>();
         for (OrderItemDTO itemDTO : orderDTO.items()) {
             Product product = productRepository.findById(itemDTO.productId())
@@ -61,26 +75,29 @@ public class OrderService {
             orderItem.setOrder(order);
             orderItem.setProduct(product);
             orderItem.setQuantity(itemDTO.quantity());
+            orderItem.setUnitPrice(product.getPrice());
+            orderItem.setSubtotal(product.getPrice() * itemDTO.quantity());
 
-            // Adicione o item ao banco
             orderItems.add(orderItemRepository.save(orderItem));
         }
 
-        // 6. Associar os itens ao pedido e atualizar o pedido
+        // Atualizar o pedido com os itens e o preço total
         order.setItems(orderItems);
-        order.setTotalPrice(calculateTotalPrice(orderItems));  // Calcular o preço total
+        order.setTotalPrice(calculateTotalPrice(orderItems));
+        Order savedOrder = orderRepository.save(order);
 
-        Order orderSaved = orderRepository.save(order);
-
-        // 7. Monta o DTO de resposta
-
+        // Retornar o DTO de resposta
         return new OrderResponseDTO(
-                orderSaved.getId(),
-                orderSaved.getOrderStatus(),
-                orderSaved.getTotalPrice(),
-                orderSaved.getClient().getId(),
-                orderSaved.getPartner().getId());
+                savedOrder.getId(),
+                savedOrder.getOrderStatus(),
+                savedOrder.getTotalPrice(),
+                savedOrder.getClient() != null ? savedOrder.getClient().getId() : null,
+                savedOrder.getPartner().getId(),
+                savedOrder.getName(),
+                savedOrder.getDeliveryAddress()
+        );
     }
+
 
     public OrderResponseDTO updateOrderStatus(Long orderId, String status) {
 
@@ -93,7 +110,6 @@ public class OrderService {
 
     }
 
-    // outros métodos....
 
     // Método para calcular o preço total
     private int calculateTotalPrice(List<OrderItem> orderItems) {
@@ -102,22 +118,26 @@ public class OrderService {
                 .sum();
     }
 
+
     public List<OrderResponseDTO> convertToOrderResponseDTO(Optional<List<Order>> optionalOrders) {
         return optionalOrders
-                .map(orders -> orders.stream()  // Se a lista de pedidos estiver presente, realiza o stream
-                        .map(this::toOrderResponseDTO)  // Converte cada Order em OrderResponseDTO
-                        .collect(Collectors.toList()))  // Coleta em uma lista de OrderResponseDTO
-                .orElse(Collections.emptyList());  // Caso o Optional esteja vazio, retorna uma lista vazia
+                .map(orders -> orders.stream()
+                        .map(this::toOrderResponseDTO)
+                        .collect(Collectors.toList()))
+                .orElse(Collections.emptyList());
     }
 
-    private OrderResponseDTO toOrderResponseDTO(Order order) {
 
+    private OrderResponseDTO toOrderResponseDTO(Order order) {
         return new OrderResponseDTO(
                 order.getId(),
                 order.getOrderStatus(),
                 order.getTotalPrice(),
-                order.getClient().getId(),
-                order.getPartner().getId());
+                order.getClient() != null ? order.getClient().getId() : null,
+                order.getPartner().getId(),
+                order.getName(),
+                order.getDeliveryAddress()
+        );
     }
 
     public StatusType getOrderStatusType(String status) {
