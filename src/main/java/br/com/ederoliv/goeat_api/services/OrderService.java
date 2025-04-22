@@ -111,7 +111,6 @@ public class OrderService {
     }
 
 
-    // Método para calcular o preço total
     private int calculateTotalPrice(List<OrderItem> orderItems) {
         return orderItems.stream()
                 .mapToInt(item -> item.getProduct().getPrice() * item.getQuantity())
