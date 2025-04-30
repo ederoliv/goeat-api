@@ -54,7 +54,6 @@ public class SecurityConfig {
                         //.requestMatchers("/authenticate").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/partners/{partnerId}/products").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/partners/{id}/orders").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/partners/{id}/orders").permitAll()
                         .requestMatchers(HttpMethod.POST,"/api/v1/partners/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/partners/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/menus/{menuId}/categories").permitAll()

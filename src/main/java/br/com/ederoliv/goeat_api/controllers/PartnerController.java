@@ -3,6 +3,7 @@ package br.com.ederoliv.goeat_api.controllers;
 import br.com.ederoliv.goeat_api.dto.AuthResponseDTO;
 import br.com.ederoliv.goeat_api.dto.order.OrderDTO;
 import br.com.ederoliv.goeat_api.dto.order.OrderResponseDTO;
+import br.com.ederoliv.goeat_api.dto.order.OrderStatusDTO;
 import br.com.ederoliv.goeat_api.dto.partner.PartnerLoginRequestDTO;
 import br.com.ederoliv.goeat_api.dto.partner.PartnerRequestDTO;
 import br.com.ederoliv.goeat_api.dto.partner.PartnerResponseDTO;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.*;
 
@@ -91,9 +93,31 @@ public class PartnerController {
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
     }
 
+    @PreAuthorize("hasAnyAuthority('SCOPE_ROLE_PARTNER')")
     @GetMapping("/{id}/orders")
     public ResponseEntity<?> getOrderPartner(@PathVariable UUID id) {
         List<OrderResponseDTO> responseDTOList = orderService.getAllOrdersByPartnerId(id);
         return ResponseEntity.ok(responseDTOList);
+    }
+
+    @PreAuthorize("hasAuthority('SCOPE_ROLE_PARTNER')")
+    @GetMapping("/{id}/orders/{orderId}")
+    public ResponseEntity<?> getOrderById(@PathVariable UUID id, @PathVariable Long orderId) {
+
+        OrderResponseDTO orderResponseDTO = orderService.getOrderById(orderId);
+
+        if (orderResponseDTO == null) {
+            return ResponseEntity.badRequest().body("Erro ao buscar o parceiro");
+        }else {
+            return ResponseEntity.ok(orderResponseDTO);
+        }
+    }
+
+    @PreAuthorize("hasAuthority('SCOPE_ROLE_PARTNER')")
+    @PutMapping("/{id}/orders")
+    public ResponseEntity<?> updateOrderPartner(@PathVariable UUID id, @RequestBody OrderStatusDTO orderStatusDTO) {
+
+        return ResponseEntity.ok().body(orderService.updateOrderStatus(orderStatusDTO.id(), orderStatusDTO.status()));
+
     }
 }

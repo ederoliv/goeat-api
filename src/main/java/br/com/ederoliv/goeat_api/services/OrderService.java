@@ -25,6 +25,17 @@ public class OrderService {
 
     private final OrderItemRepository orderItemRepository;
 
+    public OrderResponseDTO getOrderById(Long OrderId) {
+
+        Order order = orderRepository.findById(OrderId).orElse(null);
+
+        if (order == null) {
+            return null;
+        } else {
+            return toOrderResponseDTO(order);
+        }
+    }
+
 
     public List<OrderResponseDTO> getAllOrdersByPartnerId(UUID partnerId) {
 
