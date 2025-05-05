@@ -12,7 +12,6 @@ import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -53,12 +52,13 @@ public class SecurityConfig {
                         // Endpoints públicos
                         //.requestMatchers("/authenticate").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/partners/{partnerId}/products").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/partners/{id}/orders").permitAll()
+                        .requestMatchers(HttpMethod.POST,"/api/v1/partners/{id}/orders").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/partners/address").permitAll()
                         .requestMatchers(HttpMethod.POST,"/api/v1/partners/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/partners/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/menus/{menuId}/categories").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/clients/login").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/clients/register").permitAll()
+                        .requestMatchers(HttpMethod.POST,"/api/v1/clients/login").permitAll()
+                        .requestMatchers(HttpMethod.POST,"/api/v1/clients/register").permitAll()
 
 
                         // Qualquer outra requisição precisa de autenticação
@@ -72,17 +72,17 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Permite requisições do teu frontend
+
         configuration.addAllowedOriginPattern("*");
-        // Permite todos os métodos HTTP
+
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        // Cabeçalhos permitidos
+
         configuration.setAllowedHeaders(List.of("*"));
-        // Permite credenciais como cookies e cabeçalhos de autenticação
+
         configuration.setAllowCredentials(true);
-        // Expõe os cabeçalhos que você quer que o cliente tenha acesso
+
         configuration.setExposedHeaders(List.of("Authorization"));
-        // Define por quanto tempo (em segundos) o navegador pode armazenar em cache a resposta pré-voo
+
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

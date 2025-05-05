@@ -1,6 +1,7 @@
 package br.com.ederoliv.goeat_api.controllers;
 
 import br.com.ederoliv.goeat_api.dto.AuthResponseDTO;
+import br.com.ederoliv.goeat_api.dto.address.AddressRequestDTO;
 import br.com.ederoliv.goeat_api.dto.order.OrderDTO;
 import br.com.ederoliv.goeat_api.dto.order.OrderResponseDTO;
 import br.com.ederoliv.goeat_api.dto.order.OrderStatusDTO;
@@ -30,12 +31,11 @@ import java.util.UUID;
 public class PartnerController {
 
     private final PartnerService partnerService;
-    private final ProductService productService;
     private final OrderService orderService;
     private final AuthenticationService authenticationService;
 
     @GetMapping("/{id}")
-    public ResponseEntity<PartnerResponseDTO> getPartnerById(@PathVariable UUID id) {
+    public ResponseEntity<?> getPartnerById(@PathVariable UUID id) {
         PartnerResponseDTO response = partnerService.getPartnerById(id);
         return ResponseEntity.ok(response);
     }
@@ -119,5 +119,16 @@ public class PartnerController {
 
         return ResponseEntity.ok().body(orderService.updateOrderStatus(orderStatusDTO.id(), orderStatusDTO.status()));
 
+    }
+
+    @PreAuthorize("hasAuthority('SCOPE_ROLE_PARTNER')")
+    @PostMapping("/address")
+    public ResponseEntity<?> setAdress(@RequestBody AddressRequestDTO request) {
+        return ResponseEntity.ok().body(request);
+    }
+
+    @GetMapping("/{id}/address")
+    public ResponseEntity<?> getFullAdress() {
+        return ResponseEntity.ok().body("OK");
     }
 }
