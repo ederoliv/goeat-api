@@ -2,6 +2,7 @@ package br.com.ederoliv.goeat_api.controllers;
 
 import br.com.ederoliv.goeat_api.dto.AuthResponseDTO;
 import br.com.ederoliv.goeat_api.dto.address.AddressRequestDTO;
+import br.com.ederoliv.goeat_api.dto.address.AddressResponseDTO;
 import br.com.ederoliv.goeat_api.dto.order.OrderDTO;
 import br.com.ederoliv.goeat_api.dto.order.OrderResponseDTO;
 import br.com.ederoliv.goeat_api.dto.order.OrderStatusDTO;
@@ -9,16 +10,16 @@ import br.com.ederoliv.goeat_api.dto.partner.PartnerLoginRequestDTO;
 import br.com.ederoliv.goeat_api.dto.partner.PartnerRequestDTO;
 import br.com.ederoliv.goeat_api.dto.partner.PartnerResponseDTO;
 import br.com.ederoliv.goeat_api.entities.Partner;
-import br.com.ederoliv.goeat_api.services.AuthenticationService;
-import br.com.ederoliv.goeat_api.services.OrderService;
-import br.com.ederoliv.goeat_api.services.PartnerService;
-import br.com.ederoliv.goeat_api.services.ProductService;
+import br.com.ederoliv.goeat_api.services.*;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,8 +31,9 @@ import java.util.UUID;
 @RequestMapping("api/v1/partners")
 public class PartnerController {
 
-    private final PartnerService partnerService;
     private final OrderService orderService;
+    private final AddressService addressService;
+    private final PartnerService partnerService;
     private final AuthenticationService authenticationService;
 
     @GetMapping("/{id}")
@@ -123,12 +125,37 @@ public class PartnerController {
 
     @PreAuthorize("hasAuthority('SCOPE_ROLE_PARTNER')")
     @PostMapping("/address")
-    public ResponseEntity<?> setAdress(@RequestBody AddressRequestDTO request) {
-        return ResponseEntity.ok().body(request);
+    public ResponseEntity<?> setAddress(@RequestBody AddressRequestDTO request, Authentication authentication) {
+        try {
+            // Extrai o partnerId do token JWT
+            String partnerIdStr = ((Jwt) authentication.getPrincipal()).getClaim("partnerId");
+            UUID partnerId = UUID.fromString(partnerIdStr);
+
+            // Chama o serviço com o request original e o partnerId do token
+            AddressResponseDTO response = addressService.registerPartnerAddress(request, partnerId);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro ao registrar endereço: " + e.getMessage());
+        }
     }
 
     @GetMapping("/{id}/address")
-    public ResponseEntity<?> getFullAdress() {
-        return ResponseEntity.ok().body("OK");
+    public ResponseEntity<?> getFullAddress(@PathVariable UUID id) {
+        try {
+            String formattedAddress = addressService.getFullAddress(id);
+            if (formattedAddress == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("Endereço não encontrado para o parceiro");
+            }
+            return ResponseEntity.ok(formattedAddress);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro ao buscar endereço: " + e.getMessage());
+        }
     }
 }

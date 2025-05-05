@@ -27,16 +27,6 @@ public class AddressController {
         return ResponseEntity.ok(addresses);
     }
 
-    @PreAuthorize("hasAnyAuthority('SCOPE_ROLE_PARTNER')")
-    @GetMapping("/partners/{partnerId}")
-    public ResponseEntity<AddressResponseDTO> getPartnerAddress(@PathVariable UUID partnerId) {
-        AddressResponseDTO address = addressService.findPartnerAddress(partnerId);
-        if (address == null) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(address);
-    }
-
     @PreAuthorize("hasAnyAuthority('SCOPE_ROLE_CLIENT', 'SCOPE_ROLE_PARTNER')")
     @PostMapping
     public ResponseEntity<?> registerAddress(@RequestBody AddressRequestDTO requestDTO) {

@@ -49,7 +49,8 @@ public class AddressService {
                 .collect(Collectors.toList());
     }
 
-    public AddressResponseDTO findPartnerAddress(UUID partnerId) {
+    public String getFullAddress(UUID partnerId) {
+        // Busca o endereço do parceiro
         Address address = addressRepository.findByPartnerId(partnerId)
                 .orElse(null);
 
@@ -57,20 +58,60 @@ public class AddressService {
             return null;
         }
 
-        return new AddressResponseDTO(
-                address.getId(),
-                address.getStreet(),
-                address.getNumber(),
-                address.getComplement(),
-                address.getNeighborhood(),
-                address.getCity(),
-                address.getState(),
-                address.getZipCode(),
-                address.getReference(),
-                address.getPartner().getId(),
-                "PARTNER"
-        );
+        StringBuilder formattedAddress = new StringBuilder();
+
+        formattedAddress.append(address.getStreet());
+
+        if (address.getNumber() != null && !address.getNumber().isEmpty()) {
+            formattedAddress.append(", nº ").append(address.getNumber());
+        }
+
+        if (address.getComplement() != null && !address.getComplement().isEmpty()) {
+            formattedAddress.append(", ").append(address.getComplement());
+        }
+
+        if (address.getNeighborhood() != null && !address.getNeighborhood().isEmpty()) {
+            formattedAddress.append(", ").append(address.getNeighborhood());
+        }
+
+        if (address.getCity() != null && !address.getCity().isEmpty()) {
+            formattedAddress.append(", ").append(address.getCity());
+
+            if (address.getState() != null && !address.getState().isEmpty()) {
+                formattedAddress.append("/").append(address.getState());
+            }
+        }
+
+        if (address.getZipCode() != null && !address.getZipCode().isEmpty()) {
+            formattedAddress.append(", CEP: ").append(address.getZipCode());
+        }
+
+        if (address.getReference() != null && !address.getReference().isEmpty()) {
+            formattedAddress.append(", Referência: ").append(address.getReference());
+        }
+
+        return formattedAddress.toString();
     }
+
+    public AddressResponseDTO registerPartnerAddress(AddressRequestDTO requestDTO, UUID partnerId) {
+        // Cria um novo DTO com o partnerId fornecido, garantindo que o clientId seja null
+        AddressRequestDTO secureRequest = new AddressRequestDTO(
+                requestDTO.street(),
+                requestDTO.number(),
+                requestDTO.complement(),
+                requestDTO.neighborhood(),
+                requestDTO.city(),
+                requestDTO.state(),
+                requestDTO.zipCode(),
+                requestDTO.reference(),
+                null, // Sempre será null para partners
+                partnerId // Usa o ID do parceiro fornecido
+        );
+
+        // Utiliza o método existente para registrar o endereço
+        return registerAddress(secureRequest);
+    }
+
 
     public AddressResponseDTO registerAddress(AddressRequestDTO requestDTO) {
         Address address = new Address();
