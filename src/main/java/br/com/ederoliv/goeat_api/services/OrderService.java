@@ -46,22 +46,22 @@ public class OrderService {
 
 
     public OrderResponseDTO createOrder(OrderDTO orderDTO, UUID partnerId) {
-        // Verifica se o parceiro existe
+
         Partner partner = partnerRepository.findById(partnerId)
                 .orElseThrow(() -> new RuntimeException("Partner not found"));
 
-        // Criar o pedido
+
         Order order = new Order();
         order.setPartner(partner);
         order.setOrderStatus(StatusType.ESPERANDO);
 
-        // Dados comuns para todos os pedidos
+
         order.setName(orderDTO.name());
         order.setEmail(orderDTO.email());
         order.setPhone(orderDTO.phone());
         order.setDeliveryAddress(orderDTO.deliveryAddress());
 
-        // Se clientId não for null, é um pedido autenticado
+
         if (orderDTO.clientId() != null) {
             Client client = clientRepository.findById(orderDTO.clientId())
                     .orElseThrow(() -> new RuntimeException("Client not found"));
