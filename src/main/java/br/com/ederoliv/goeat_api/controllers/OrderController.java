@@ -26,4 +26,9 @@ public class OrderController {
         return ResponseEntity.ok(items);
     }
 
+    @PreAuthorize("hasAuthority('SCOPE_ROLE_CLIENT')")
+    @GetMapping("/clients/{clientId}")
+    public ResponseEntity<?> getOrdersByClientId() {
+        return ResponseEntity.ok("Ok");
+    }
 }
