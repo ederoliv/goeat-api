@@ -1,11 +1,15 @@
 package br.com.ederoliv.goeat_api.services;
 
+import br.com.ederoliv.goeat_api.dto.client.ClientProfileResponseDTO;
 import br.com.ederoliv.goeat_api.dto.client.ClientRegisterDTO;
+import br.com.ederoliv.goeat_api.dto.client.ClientUpdateDTO;
 import br.com.ederoliv.goeat_api.entities.Client;
 import br.com.ederoliv.goeat_api.entities.User;
 import br.com.ederoliv.goeat_api.repositories.ClientRepository;
 import br.com.ederoliv.goeat_api.repositories.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +21,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ClientService {
 
+    private final AuthenticationUtilsService authenticationUtilsService;
     private final ClientRepository clientRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -64,5 +69,58 @@ public class ClientService {
 
         // Salvar cliente
         return clientRepository.save(client);
+    }
+
+    public ClientProfileResponseDTO getClientProfile(Authentication authentication) {
+        UUID clientId = authenticationUtilsService.getClientIdFromAuthentication(authentication);
+        if (clientId == null) {
+            throw new SecurityException("Não foi possível identificar o cliente autenticado");
+        }
+
+        Client client = clientRepository.findById(clientId)
+                .orElseThrow(() -> new EntityNotFoundException("Cliente não encontrado"));
+
+        return new ClientProfileResponseDTO(
+                client.getId(),
+                client.getName(),
+                client.getUser().getUsername(), // Email está no User
+                client.getCpf(),
+                client.getPhone(),
+                client.getBirthDate()
+        );
+    }
+
+    @Transactional
+    public ClientProfileResponseDTO updateClientProfile(ClientUpdateDTO updateDTO, Authentication authentication) {
+        UUID clientId = authenticationUtilsService.getClientIdFromAuthentication(authentication);
+        if (clientId == null) {
+            throw new SecurityException("Não foi possível identificar o cliente autenticado");
+        }
+
+        Client client = clientRepository.findById(clientId)
+                .orElseThrow(() -> new EntityNotFoundException("Cliente não encontrado"));
+
+        if (updateDTO.name() != null && !updateDTO.name().isBlank()) {
+            client.setName(updateDTO.name());
+        }
+
+        if (updateDTO.phone() != null && !updateDTO.phone().isBlank()) {
+            client.setPhone(updateDTO.phone());
+        }
+
+        if (updateDTO.birthDate() != null) {
+            client.setBirthDate(updateDTO.birthDate());
+        }
+
+        Client updatedClient = clientRepository.save(client);
+
+        return new ClientProfileResponseDTO(
+                updatedClient.getId(),
+                updatedClient.getName(),
+                updatedClient.getUser().getUsername(),
+                updatedClient.getCpf(),
+                updatedClient.getPhone(),
+                updatedClient.getBirthDate()
+        );
     }
 }
