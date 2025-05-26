@@ -97,7 +97,7 @@ public class OrderService {
         order.setTotalPrice(calculateTotalPrice(orderItems));
         Order savedOrder = orderRepository.save(order);
 
-        // Retornar o DTO de resposta
+
         return new OrderResponseDTO(
                 savedOrder.getId(),
                 savedOrder.getOrderStatus(),
@@ -105,20 +105,30 @@ public class OrderService {
                 savedOrder.getClient() != null ? savedOrder.getClient().getId() : null,
                 savedOrder.getPartner().getId(),
                 savedOrder.getName(),
-                savedOrder.getDeliveryAddress()
+                savedOrder.getDeliveryAddress(),
+                savedOrder.getCreatedAt(),
+                savedOrder.getFinishedAt(),
+                savedOrder.getCanceledAt()
         );
     }
 
 
     public OrderResponseDTO updateOrderStatus(Long orderId, String status) {
-
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found"));
 
-        order.setOrderStatus(getOrderStatusType(status));
+        StatusType newStatus = getOrderStatusType(status);
+        order.setOrderStatus(newStatus);
+
+
+        if (newStatus == StatusType.FINALIZADOS && order.getFinishedAt() == null) {
+            order.finishOrder();
+        }
+        if (newStatus == StatusType.CANCELADOS && order.getCanceledAt() == null) {
+            order.cancelOrder();
+        }
 
         return toOrderResponseDTO(orderRepository.save(order));
-
     }
 
 
@@ -146,7 +156,10 @@ public class OrderService {
                 order.getClient() != null ? order.getClient().getId() : null,
                 order.getPartner().getId(),
                 order.getName(),
-                order.getDeliveryAddress()
+                order.getDeliveryAddress(),
+                order.getCreatedAt(),
+                order.getFinishedAt(),
+                order.getCanceledAt()
         );
     }
 
@@ -159,6 +172,7 @@ public class OrderService {
             case "PREPARANDO" -> StatusType.PREPARANDO;
             case "ENCAMINHADOS" -> StatusType.ENCAMINHADOS;
             case "FINALIZADOS" -> StatusType.FINALIZADOS;
+            case "CANCELADOS" -> StatusType.CANCELADOS;
             default -> newStatus;
         };
 

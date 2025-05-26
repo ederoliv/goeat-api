@@ -2,6 +2,7 @@ package br.com.ederoliv.goeat_api.dto.order;
 
 import br.com.ederoliv.goeat_api.entities.StatusType;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record OrderResponseDTO(
@@ -11,5 +12,8 @@ public record OrderResponseDTO(
         UUID clientId,
         UUID partnerId,
         String name,
-        String deliveryAddress
+        String deliveryAddress,
+        LocalDateTime createdAt,
+        LocalDateTime finishedAt,
+        LocalDateTime canceledAt
 ) {}

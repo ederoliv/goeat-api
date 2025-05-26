@@ -5,5 +5,6 @@ public enum StatusType {
     ESPERANDO,
     PREPARANDO,
     ENCAMINHADOS,
-    FINALIZADOS
+    FINALIZADOS,
+    CANCELADOS
 }

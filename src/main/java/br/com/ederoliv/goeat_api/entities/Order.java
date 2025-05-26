@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -25,17 +26,23 @@ public class Order {
     @Column(name = "total_price")
     private int totalPrice;
 
+    @Column(name = "created_at")
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    @Column(name = "finished_at")
+    private LocalDateTime finishedAt;
+
+    @Column(name = "canceled_at")
+    private LocalDateTime canceledAt;
 
     private String name;
     private String email;
     private String phone;
     private String deliveryAddress;
 
-
     @Column(name = "is_authenticated")
     private boolean authenticated = false;
 
-    //relacionamentos
     @ManyToOne
     @JoinColumn(name = "client_id")
     private Client client;
@@ -46,4 +53,11 @@ public class Order {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     private List<OrderItem> items;
+
+    public void finishOrder() {
+        this.finishedAt = LocalDateTime.now();
+    }
+    public void cancelOrder() {
+        this.canceledAt = LocalDateTime.now();
+    }
 }
