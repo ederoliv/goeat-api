@@ -1,9 +1,7 @@
 package br.com.ederoliv.goeat_api.services;
 
 
-import br.com.ederoliv.goeat_api.dto.report.PeriodMetricsDTO;
-import br.com.ederoliv.goeat_api.dto.report.ReportQueryResultDTO;
-import br.com.ederoliv.goeat_api.dto.report.TableReportDTO;
+import br.com.ederoliv.goeat_api.dto.report.*;
 import br.com.ederoliv.goeat_api.repositories.OrderRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -14,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.time.temporal.WeekFields;
 import java.util.Locale;
 import java.util.UUID;
@@ -86,5 +85,55 @@ public class ReportService {
         log.info("Relatório de tabela gerado com sucesso para parceiro: {}", partnerId);
 
         return new TableReportDTO(dailyMetrics, weeklyMetrics, monthlyMetrics);
+    }
+
+    public CustomPeriodFinanceDTO getCustomPeriodFinance(String startDate, String endDate, Authentication authentication) {
+        UUID partnerId = authenticationUtilsService.getPartnerIdFromAuthentication(authentication);
+        if (partnerId == null) {
+            throw new SecurityException("Não foi possível identificar o parceiro autenticado");
+        }
+
+        log.info("Gerando relatório customizado para parceiro: {} - Período: {} a {}", partnerId, startDate, endDate);
+
+        try {
+            // Parse das datas
+            LocalDate startLocalDate = LocalDate.parse(startDate);
+            LocalDate endLocalDate = LocalDate.parse(endDate);
+
+            // Validação das datas
+            if (startLocalDate.isAfter(endLocalDate)) {
+                throw new IllegalArgumentException("Data de início não pode ser posterior à data de fim");
+            }
+
+            LocalDateTime startDateTime = startLocalDate.atStartOfDay();
+            LocalDateTime endDateTime = endLocalDate.atTime(LocalTime.MAX);
+
+            log.info("Datas convertidas - Início: {}, Fim: {}", startDateTime, endDateTime);
+
+            // Buscar dados do período customizado
+            CustomReportQueryResultDTO customData = orderRepository.findCustomReportData(
+                    partnerId, startDateTime, endDateTime);
+
+            log.info("Dados retornados: vendas={}, pedidos={}, cancelamentos={}, pedidos cancelados={}",
+                    customData.getTotalSalesCents(),
+                    customData.getTotalOrdersFinished(),
+                    customData.getCanceledOrdersCents(),
+                    customData.getTotalOrdersCanceled());
+
+            CustomPeriodFinanceDTO result = new CustomPeriodFinanceDTO(
+                    customData.getTotalSalesCents(),
+                    customData.getAverageTicketCents(),
+                    customData.getCanceledOrdersCents(),
+                    customData.getTotalOrdersFinished(),
+                    customData.getTotalOrdersCanceled()
+            );
+
+            log.info("Relatório customizado gerado com sucesso para parceiro: {}", partnerId);
+            return result;
+
+        } catch (DateTimeParseException e) {
+            log.error("Erro ao fazer parse das datas: startDate={}, endDate={}", startDate, endDate, e);
+            throw new IllegalArgumentException("Formato de data inválido. Use o formato: YYYY-MM-DD");
+        }
     }
 }

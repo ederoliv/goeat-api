@@ -1,6 +1,7 @@
 package br.com.ederoliv.goeat_api.repositories;
 
 
+import br.com.ederoliv.goeat_api.dto.report.CustomReportQueryResultDTO;
 import br.com.ederoliv.goeat_api.dto.report.ReportQueryResultDTO;
 import br.com.ederoliv.goeat_api.entities.Order;
 
@@ -31,6 +32,17 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("endDate") LocalDateTime endDate
     );
 
-
+    @Query("SELECT new br.com.ederoliv.goeat_api.dto.report.CustomReportQueryResultDTO(" +
+            "CAST(COALESCE(SUM(CASE WHEN o.orderStatus = 'FINALIZADOS' AND o.finishedAt >= :startDate AND o.finishedAt <= :endDate THEN o.totalPrice ELSE 0 END), 0) AS integer), " +
+            "CAST(COALESCE(COUNT(CASE WHEN o.orderStatus = 'FINALIZADOS' AND o.finishedAt >= :startDate AND o.finishedAt <= :endDate THEN 1 END), 0) AS integer), " +
+            "CAST(COALESCE(SUM(CASE WHEN o.orderStatus = 'CANCELADOS' AND o.canceledAt >= :startDate AND o.canceledAt <= :endDate THEN o.totalPrice ELSE 0 END), 0) AS integer), " +
+            "CAST(COALESCE(COUNT(CASE WHEN o.orderStatus = 'CANCELADOS' AND o.canceledAt >= :startDate AND o.canceledAt <= :endDate THEN 1 END), 0) AS integer)" +
+            ") FROM Order o " +
+            "WHERE o.partner.id = :partnerId")
+    CustomReportQueryResultDTO findCustomReportData(
+            @Param("partnerId") UUID partnerId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
+    );
 }
 
