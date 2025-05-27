@@ -1,8 +1,9 @@
 package br.com.ederoliv.goeat_api.repositories;
 
 
+import br.com.ederoliv.goeat_api.dto.report.ReportQueryResultDTO;
 import br.com.ederoliv.goeat_api.entities.Order;
-import br.com.ederoliv.goeat_api.entities.StatusType;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -17,20 +18,19 @@ import java.util.UUID;
 public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<List<Order>> findByPartnerId(UUID id);
 
-    /**
-     * Calcula o total de vendas (soma dos totalPrice) dos pedidos finalizados
-     * de um parceiro específico em um período de tempo
-     */
-    @Query("SELECT COALESCE(SUM(o.totalPrice), 0) FROM Order o " +
-            "WHERE o.partner.id = :partnerId " +
-            "AND o.orderStatus = :status " +
-            "AND o.createdAt >= :startDate " +
-            "AND o.createdAt <= :endDate")
-    Optional<Integer> findTotalFinishedOrdersByPartnerAndDateRange(
+
+    @Query("SELECT new br.com.ederoliv.goeat_api.dto.report.ReportQueryResultDTO(" +
+            "CAST(COALESCE(SUM(CASE WHEN o.orderStatus = 'FINALIZADOS' AND o.finishedAt >= :startDate AND o.finishedAt <= :endDate THEN o.totalPrice ELSE 0 END), 0) AS integer), " +
+            "CAST(COALESCE(COUNT(CASE WHEN o.orderStatus = 'FINALIZADOS' AND o.finishedAt >= :startDate AND o.finishedAt <= :endDate THEN 1 END), 0) AS integer), " +
+            "CAST(COALESCE(SUM(CASE WHEN o.orderStatus = 'CANCELADOS' AND o.canceledAt >= :startDate AND o.canceledAt <= :endDate THEN o.totalPrice ELSE 0 END), 0) AS integer)" +
+            ") FROM Order o " +
+            "WHERE o.partner.id = :partnerId")
+    ReportQueryResultDTO findTableReportData(
             @Param("partnerId") UUID partnerId,
-            @Param("status") StatusType status,
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate
     );
+
+
 }
 
