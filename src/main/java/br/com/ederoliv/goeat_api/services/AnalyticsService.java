@@ -1,9 +1,6 @@
 package br.com.ederoliv.goeat_api.services;
 
-import br.com.ederoliv.goeat_api.dto.analytics.BestsellersResponseDTO;
-import br.com.ederoliv.goeat_api.dto.analytics.DailySalesDTO;
-import br.com.ederoliv.goeat_api.dto.analytics.ProductBestsellerDTO;
-import br.com.ederoliv.goeat_api.dto.analytics.SalesTimelineResponseDTO;
+import br.com.ederoliv.goeat_api.dto.analytics.*;
 import br.com.ederoliv.goeat_api.repositories.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -122,6 +120,50 @@ public class AnalyticsService {
         BestsellersResponseDTO response = new BestsellersResponseDTO(topProducts);
 
         log.info("Resposta de products-bestsellers gerada com sucesso para parceiro: {}", partnerId);
+        return response;
+    }
+
+    public DeliveryTypesResponseDTO getDeliveryTypes(Integer period, Authentication authentication) {
+        UUID partnerId = authenticationUtilsService.getPartnerIdFromAuthentication(authentication);
+        if (partnerId == null) {
+            throw new SecurityException("Não foi possível identificar o parceiro autenticado");
+        }
+
+        log.info("Gerando dados de delivery-types para parceiro: {} - Período: {} dias", partnerId, period);
+
+        // Calcular datas
+        LocalDateTime endDateTime = LocalDateTime.now();
+        LocalDateTime startDateTime = endDateTime.minusDays(period);
+
+        log.info("Período calculado: {} até {}", startDateTime, endDateTime);
+
+        // Buscar dados do banco
+        DeliveryStatsDTO deliveryStats = orderRepository.findDeliveryTypesByPeriod(
+                partnerId, startDateTime, endDateTime);
+
+        // Se não houver dados, criar um objeto com valores zerados
+        if (deliveryStats == null) {
+            deliveryStats = new DeliveryStatsDTO(0, 0, 0, 0);
+        }
+
+        log.info("Dados encontrados - Delivery: {} pedidos, {} centavos | Pickup: {} pedidos, {} centavos",
+                deliveryStats.deliveryOrders(), deliveryStats.deliveryRevenue(),
+                deliveryStats.pickupOrders(), deliveryStats.pickupRevenue());
+
+        // Criar DTOs de resposta
+        DeliveryTypeDTO deliveryDTO = new DeliveryTypeDTO(
+                deliveryStats.deliveryOrders() != null ? deliveryStats.deliveryOrders() : 0,
+                deliveryStats.deliveryRevenue() != null ? deliveryStats.deliveryRevenue() : 0
+        );
+
+        DeliveryTypeDTO pickupDTO = new DeliveryTypeDTO(
+                deliveryStats.pickupOrders() != null ? deliveryStats.pickupOrders() : 0,
+                deliveryStats.pickupRevenue() != null ? deliveryStats.pickupRevenue() : 0
+        );
+
+        DeliveryTypesResponseDTO response = new DeliveryTypesResponseDTO(deliveryDTO, pickupDTO);
+
+        log.info("Resposta de delivery-types gerada com sucesso para parceiro: {}", partnerId);
         return response;
     }
 }

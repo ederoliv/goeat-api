@@ -2,6 +2,7 @@ package br.com.ederoliv.goeat_api.repositories;
 
 
 import br.com.ederoliv.goeat_api.dto.analytics.DailySalesDTO;
+import br.com.ederoliv.goeat_api.dto.analytics.DeliveryStatsDTO;
 import br.com.ederoliv.goeat_api.dto.analytics.ProductBestsellerDTO;
 import br.com.ederoliv.goeat_api.dto.report.CustomReportQueryResultDTO;
 import br.com.ederoliv.goeat_api.dto.report.ReportQueryResultDTO;
@@ -79,6 +80,22 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             "GROUP BY p.id, p.name " +
             "ORDER BY SUM(oi.quantity) DESC")
     List<ProductBestsellerDTO> findProductsBestsellersByPeriod(
+            @Param("partnerId") UUID partnerId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
+    );
+
+    @Query("SELECT new br.com.ederoliv.goeat_api.dto.analytics.DeliveryStatsDTO(" +
+            "CAST(COALESCE(COUNT(CASE WHEN o.deliveryAddress != 'RETIRADA NO LOCAL' THEN 1 END), 0) AS integer), " +
+            "CAST(COALESCE(SUM(CASE WHEN o.deliveryAddress != 'RETIRADA NO LOCAL' THEN o.totalPrice ELSE 0 END), 0) AS integer), " +
+            "CAST(COALESCE(COUNT(CASE WHEN o.deliveryAddress = 'RETIRADA NO LOCAL' THEN 1 END), 0) AS integer), " +
+            "CAST(COALESCE(SUM(CASE WHEN o.deliveryAddress = 'RETIRADA NO LOCAL' THEN o.totalPrice ELSE 0 END), 0) AS integer)" +
+            ") FROM Order o " +
+            "WHERE o.partner.id = :partnerId " +
+            "AND o.finishedAt >= :startDate " +
+            "AND o.finishedAt <= :endDate " +
+            "AND o.orderStatus = 'FINALIZADOS'")
+    DeliveryStatsDTO findDeliveryTypesByPeriod(
             @Param("partnerId") UUID partnerId,
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate
