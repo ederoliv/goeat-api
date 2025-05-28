@@ -1,6 +1,8 @@
 package br.com.ederoliv.goeat_api.services;
 
+import br.com.ederoliv.goeat_api.dto.analytics.BestsellersResponseDTO;
 import br.com.ederoliv.goeat_api.dto.analytics.DailySalesDTO;
+import br.com.ederoliv.goeat_api.dto.analytics.ProductBestsellerDTO;
 import br.com.ederoliv.goeat_api.dto.analytics.SalesTimelineResponseDTO;
 import br.com.ederoliv.goeat_api.repositories.OrderRepository;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -80,5 +83,45 @@ public class AnalyticsService {
                 orders.stream().mapToInt(Integer::intValue).sum());
 
         return new SalesTimelineResponseDTO(labels, revenue, orders);
+    }
+
+    public BestsellersResponseDTO getProductsBestsellers(Integer period, Authentication authentication) {
+        UUID partnerId = authenticationUtilsService.getPartnerIdFromAuthentication(authentication);
+        if (partnerId == null) {
+            throw new SecurityException("Não foi possível identificar o parceiro autenticado");
+        }
+
+        log.info("Gerando dados de products-bestsellers para parceiro: {} - Período: {} dias", partnerId, period);
+
+        // Calcular datas
+        LocalDateTime endDateTime = LocalDateTime.now();
+        LocalDateTime startDateTime = endDateTime.minusDays(period);
+
+        log.info("Período calculado: {} até {}", startDateTime, endDateTime);
+
+        // Buscar dados do banco
+        List<ProductBestsellerDTO> bestsellersData = orderRepository.findProductsBestsellersByPeriod(
+                partnerId, startDateTime, endDateTime);
+
+        log.info("Produtos encontrados no banco: {} registros", bestsellersData.size());
+
+        // Limitar aos top 15 produtos (o frontend usa top 10, mas mantemos margem)
+        List<ProductBestsellerDTO> topProducts = bestsellersData.stream()
+                .limit(15)
+                .collect(Collectors.toList());
+
+        log.info("Produtos após limite: {} registros", topProducts.size());
+
+        // Log de debug para verificar dados
+        if (!topProducts.isEmpty()) {
+            ProductBestsellerDTO topProduct = topProducts.get(0);
+            log.info("Produto mais vendido: {} - Quantidade: {} - Receita: {} centavos",
+                    topProduct.name(), topProduct.quantity(), topProduct.revenue());
+        }
+
+        BestsellersResponseDTO response = new BestsellersResponseDTO(topProducts);
+
+        log.info("Resposta de products-bestsellers gerada com sucesso para parceiro: {}", partnerId);
+        return response;
     }
 }

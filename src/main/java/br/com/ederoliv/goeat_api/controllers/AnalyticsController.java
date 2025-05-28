@@ -1,5 +1,6 @@
 package br.com.ederoliv.goeat_api.controllers;
 
+import br.com.ederoliv.goeat_api.dto.analytics.BestsellersResponseDTO;
 import br.com.ederoliv.goeat_api.dto.analytics.SalesTimelineResponseDTO;
 import br.com.ederoliv.goeat_api.services.AnalyticsService;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +44,48 @@ public class AnalyticsController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
             log.error("Erro ao gerar dados de analytics", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro interno do servidor: " + e.getMessage());
+        }
+    }
+
+    @PreAuthorize("hasAuthority('SCOPE_ROLE_PARTNER')")
+    @GetMapping("/products-bestsellers")
+    public ResponseEntity<?> getProductsBestsellers(
+            @RequestParam String period,
+            Authentication authentication) {
+        try {
+            // Validar parâmetro period
+            if (period == null || period.isBlank()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Parâmetro 'period' é obrigatório");
+            }
+
+            Integer periodDays;
+            try {
+                periodDays = Integer.parseInt(period);
+                if (periodDays < 1 || periodDays > 365) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .body("Parâmetro 'period' deve estar entre 1 e 365 dias");
+                }
+            } catch (NumberFormatException e) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Parâmetro 'period' deve ser um número válido");
+            }
+
+            log.info("Requisição para products-bestsellers com período de {} dias", periodDays);
+
+            BestsellersResponseDTO response = analyticsService.getProductsBestsellers(periodDays, authentication);
+            return ResponseEntity.ok(response);
+
+        } catch (SecurityException e) {
+            log.warn("Acesso não autorizado ao products-bestsellers: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.warn("Parâmetros inválidos para products-bestsellers: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Erro ao gerar dados de products-bestsellers", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Erro interno do servidor: " + e.getMessage());
         }

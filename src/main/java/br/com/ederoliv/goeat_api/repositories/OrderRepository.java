@@ -2,6 +2,7 @@ package br.com.ederoliv.goeat_api.repositories;
 
 
 import br.com.ederoliv.goeat_api.dto.analytics.DailySalesDTO;
+import br.com.ederoliv.goeat_api.dto.analytics.ProductBestsellerDTO;
 import br.com.ederoliv.goeat_api.dto.report.CustomReportQueryResultDTO;
 import br.com.ederoliv.goeat_api.dto.report.ReportQueryResultDTO;
 import br.com.ederoliv.goeat_api.entities.Order;
@@ -61,6 +62,26 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("partnerId") UUID partnerId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate
+    );
+
+    @Query("SELECT new br.com.ederoliv.goeat_api.dto.analytics.ProductBestsellerDTO(" +
+            "p.id, " +
+            "p.name, " +
+            "CAST(COALESCE(SUM(oi.quantity), 0) AS integer), " +
+            "CAST(COALESCE(SUM(oi.quantity * oi.unitPrice), 0) AS integer)" +
+            ") FROM Order o " +
+            "INNER JOIN o.items oi " +
+            "INNER JOIN oi.product p " +
+            "WHERE o.partner.id = :partnerId " +
+            "AND o.finishedAt >= :startDate " +
+            "AND o.finishedAt <= :endDate " +
+            "AND o.orderStatus = 'FINALIZADOS' " +
+            "GROUP BY p.id, p.name " +
+            "ORDER BY SUM(oi.quantity) DESC")
+    List<ProductBestsellerDTO> findProductsBestsellersByPeriod(
+            @Param("partnerId") UUID partnerId,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate
     );
 }
 
