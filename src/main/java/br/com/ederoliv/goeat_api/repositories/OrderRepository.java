@@ -1,6 +1,7 @@
 package br.com.ederoliv.goeat_api.repositories;
 
 
+import br.com.ederoliv.goeat_api.dto.analytics.DailySalesDTO;
 import br.com.ederoliv.goeat_api.dto.report.CustomReportQueryResultDTO;
 import br.com.ederoliv.goeat_api.dto.report.ReportQueryResultDTO;
 import br.com.ederoliv.goeat_api.entities.Order;
@@ -10,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -43,6 +45,22 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("partnerId") UUID partnerId,
             @Param("startDate") LocalDateTime startDate,
             @Param("endDate") LocalDateTime endDate
+    );
+
+    @Query("SELECT new br.com.ederoliv.goeat_api.dto.analytics.DailySalesDTO(" +
+            "CAST(DATE(o.finishedAt) AS java.time.LocalDate), " +
+            "CAST(COALESCE(SUM(o.totalPrice), 0) AS integer), " +
+            "CAST(COALESCE(COUNT(o.id), 0) AS integer)" +
+            ") FROM Order o " +
+            "WHERE o.partner.id = :partnerId " +
+            "AND DATE(o.finishedAt) BETWEEN :startDate AND :endDate " +
+            "AND o.orderStatus = 'FINALIZADOS' " +
+            "GROUP BY DATE(o.finishedAt) " +
+            "ORDER BY DATE(o.finishedAt) ASC")
+    List<DailySalesDTO> findDailySalesForPeriod(
+            @Param("partnerId") UUID partnerId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
     );
 }
 
