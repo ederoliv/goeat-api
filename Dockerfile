@@ -1,12 +1,20 @@
 # Etapa 1: Construção do aplicativo usando Maven
 FROM maven:3.9.8-eclipse-temurin-17-alpine AS builder
 
+# Definir variáveis de ambiente para encoding
+ENV MAVEN_OPTS="-Dfile.encoding=UTF-8 -Dproject.build.sourceEncoding=UTF-8 -Dproject.reporting.outputEncoding=UTF-8"
+ENV JAVA_TOOL_OPTIONS="-Dfile.encoding=UTF-8"
+
 # Copie o código fonte para o contêiner
 COPY . /app
 WORKDIR /app
 
-# Compile e construa o JAR
-RUN mvn clean verify -DskipTests -Dfile.encoding=UTF-8
+# Compile e construa o JAR com configurações explícitas de encoding
+RUN mvn clean verify -DskipTests \
+    -Dfile.encoding=UTF-8 \
+    -Dproject.build.sourceEncoding=UTF-8 \
+    -Dproject.reporting.outputEncoding=UTF-8 \
+    -Dmaven.compiler.encoding=UTF-8
 
 # Etapa 2: Criação da imagem final com a JAR construída
 FROM openjdk:17-alpine
