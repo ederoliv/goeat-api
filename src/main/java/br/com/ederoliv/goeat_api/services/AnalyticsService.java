@@ -137,11 +137,11 @@ public class AnalyticsService {
 
         log.info("Período calculado: {} até {}", startDateTime, endDateTime);
 
-        // Buscar dados do banco
+
         DeliveryStatsDTO deliveryStats = orderRepository.findDeliveryTypesByPeriod(
                 partnerId, startDateTime, endDateTime);
 
-        // Se não houver dados, criar um objeto com valores zerados
+
         if (deliveryStats == null) {
             deliveryStats = new DeliveryStatsDTO(0, 0, 0, 0);
         }
@@ -150,7 +150,7 @@ public class AnalyticsService {
                 deliveryStats.deliveryOrders(), deliveryStats.deliveryRevenue(),
                 deliveryStats.pickupOrders(), deliveryStats.pickupRevenue());
 
-        // Criar DTOs de resposta
+
         DeliveryTypeDTO deliveryDTO = new DeliveryTypeDTO(
                 deliveryStats.deliveryOrders() != null ? deliveryStats.deliveryOrders() : 0,
                 deliveryStats.deliveryRevenue() != null ? deliveryStats.deliveryRevenue() : 0
