@@ -31,6 +31,9 @@ public class Client {
     @Column(nullable = false, name = "birth_date")
     private LocalDate birthDate;
 
+    @Column(name = "profile_image")
+    private String profileImage; // Armazena o CID da imagem do Pinata
+
     //Relacionamentos
     @OneToMany(mappedBy = "client", cascade = CascadeType.ALL)
     @JsonBackReference

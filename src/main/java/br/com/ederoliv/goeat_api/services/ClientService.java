@@ -25,6 +25,7 @@ public class ClientService {
     private final ClientRepository clientRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ImageService imageService; // Adiciona dependência do ImageService
 
     public Optional<Client> findByEmail(String email) {
         Optional<User> user = userRepository.findByUsername(email);
@@ -65,6 +66,7 @@ public class ClientService {
         client.setCpf(request.cpf());
         client.setPhone(request.phone());
         client.setBirthDate(request.birthDate());
+        client.setProfileImage(null); // Inicializa sem imagem de perfil
         client.setUser(savedUser);
 
         // Salvar cliente
@@ -80,13 +82,17 @@ public class ClientService {
         Client client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new EntityNotFoundException("Cliente não encontrado"));
 
+        // Constrói a URL da imagem usando o ImageService
+        String profileImageUrl = imageService.buildClientImageUrl(client.getProfileImage());
+
         return new ClientProfileResponseDTO(
                 client.getId(),
                 client.getName(),
                 client.getUser().getUsername(), // Email está no User
                 client.getCpf(),
                 client.getPhone(),
-                client.getBirthDate()
+                client.getBirthDate(),
+                profileImageUrl // URL completa da imagem ou null se não houver
         );
     }
 
@@ -100,19 +106,39 @@ public class ClientService {
         Client client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new EntityNotFoundException("Cliente não encontrado"));
 
+        // Atualiza nome se fornecido
         if (updateDTO.name() != null && !updateDTO.name().isBlank()) {
             client.setName(updateDTO.name());
         }
 
+        // Atualiza telefone se fornecido
         if (updateDTO.phone() != null && !updateDTO.phone().isBlank()) {
             client.setPhone(updateDTO.phone());
         }
 
+        // Atualiza data de nascimento se fornecida
         if (updateDTO.birthDate() != null) {
             client.setBirthDate(updateDTO.birthDate());
         }
 
+        // Atualiza imagem de perfil se fornecida
+        if (updateDTO.profileImage() != null) {
+            // Valida o CID se não for string vazia
+            if (!updateDTO.profileImage().isBlank()) {
+                if (!imageService.isValidCid(updateDTO.profileImage())) {
+                    throw new IllegalArgumentException("CID da imagem inválido");
+                }
+                client.setProfileImage(updateDTO.profileImage());
+            } else {
+                // Se for string vazia, remove a imagem
+                client.setProfileImage(null);
+            }
+        }
+
         Client updatedClient = clientRepository.save(client);
+
+        // Constrói a URL da imagem usando o ImageService
+        String profileImageUrl = imageService.buildClientImageUrl(updatedClient.getProfileImage());
 
         return new ClientProfileResponseDTO(
                 updatedClient.getId(),
@@ -120,7 +146,8 @@ public class ClientService {
                 updatedClient.getUser().getUsername(),
                 updatedClient.getCpf(),
                 updatedClient.getPhone(),
-                updatedClient.getBirthDate()
+                updatedClient.getBirthDate(),
+                profileImageUrl // URL completa da imagem ou null se não houver
         );
     }
 }

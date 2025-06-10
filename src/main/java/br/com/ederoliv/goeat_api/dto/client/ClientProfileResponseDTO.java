@@ -9,5 +9,6 @@ public record ClientProfileResponseDTO(
         String email,
         String cpf,
         String phone,
-        LocalDate birthDate
+        LocalDate birthDate,
+        String profileImageUrl
 ) {}

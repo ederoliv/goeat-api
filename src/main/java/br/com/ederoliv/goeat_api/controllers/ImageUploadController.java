@@ -21,7 +21,7 @@ public class ImageUploadController {
 
     private final ImageUploadService imageUploadService;
 
-    @PreAuthorize("hasAuthority('SCOPE_ROLE_PARTNER')")
+    @PreAuthorize( "hasAnyAuthority('SCOPE_ROLE_CLIENT', 'SCOPE_ROLE_PARTNER')")
     @PostMapping("/image")
     public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file) {
         try {

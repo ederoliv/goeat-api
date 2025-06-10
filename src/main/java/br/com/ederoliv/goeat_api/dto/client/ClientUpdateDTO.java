@@ -5,5 +5,6 @@ import java.time.LocalDate;
 public record ClientUpdateDTO(
         String name,
         String phone,
-        LocalDate birthDate
+        LocalDate birthDate,
+        String profileImage
 ) {}
