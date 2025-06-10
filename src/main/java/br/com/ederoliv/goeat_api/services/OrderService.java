@@ -36,6 +36,10 @@ public class OrderService {
         }
     }
 
+    public List<OrderResponseDTO> getAllOrdersByClientId(UUID clientId) {
+        Optional<List<Order>> orders = orderRepository.findByClientId(clientId);
+        return convertToOrderResponseDTO(orders);
+    }
 
     public List<OrderResponseDTO> getAllOrdersByPartnerId(UUID partnerId) {
 

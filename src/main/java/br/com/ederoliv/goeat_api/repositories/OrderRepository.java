@@ -22,6 +22,7 @@ import java.util.UUID;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<List<Order>> findByPartnerId(UUID id);
+    Optional<List<Order>> findByClientId(UUID clientId);
 
 
     @Query("SELECT new br.com.ederoliv.goeat_api.dto.report.ReportQueryResultDTO(" +
