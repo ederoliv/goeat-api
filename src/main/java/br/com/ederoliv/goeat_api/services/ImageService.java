@@ -5,7 +5,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class ImageService {
 
-    private static final String PINATA_GATEWAY_URL = "https://gateway.pinata.cloud/ipfs";
+    private static final String PINATA_GATEWAY_URL = "https://gateway.ipfs.io/ipfs";
+    //https://gateway.pinata.cloud/ipfs
 
     /**
      * Constrói URL completa a partir do CID para exibição no frontend
