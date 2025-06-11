@@ -5,6 +5,7 @@ import br.com.ederoliv.goeat_api.entities.Category;
 import br.com.ederoliv.goeat_api.entities.Menu;
 import br.com.ederoliv.goeat_api.entities.Product;
 import br.com.ederoliv.goeat_api.services.CategoryService;
+import br.com.ederoliv.goeat_api.services.ImageService;
 import br.com.ederoliv.goeat_api.services.MenuService;
 import br.com.ederoliv.goeat_api.services.ProductService;
 import lombok.RequiredArgsConstructor;
@@ -23,12 +24,7 @@ public class ProductController {
     private final MenuService menuService;
     private final ProductService productService;
     private final CategoryService categoryService;
-
-    /*
-    @GetMapping
-    public ResponseEntity<List<Product>> listAllProducts() {
-        return ResponseEntity.status(HttpStatus.OK).body(productService.listAllProducts());
-    }*/
+    private final ImageService imageService;
 
     @GetMapping()
     public ResponseEntity<?> getAllProductsByPartnerId(@PathVariable UUID partnerId) {
@@ -48,7 +44,19 @@ public class ProductController {
                 product.setName(productDTO.name());
                 product.setDescription(productDTO.description());
                 product.setPrice(productDTO.price());
-                product.setImageUrl(productDTO.imageUrl());
+
+                // Processar a imagem - armazenar apenas o CID
+                if (productDTO.imageUrl() != null && !productDTO.imageUrl().isBlank()) {
+                    String cid = extractCidFromUrl(productDTO.imageUrl());
+                    if (imageService.isValidCid(cid)) {
+                        product.setImageUrl(cid); // Armazena apenas o CID
+                    } else {
+                        throw new IllegalArgumentException("CID da imagem inválido");
+                    }
+                } else {
+                    product.setImageUrl(null);
+                }
+
                 product.setMenu(menu);
 
                 // Associar a categoria, se fornecida
@@ -94,5 +102,31 @@ public class ProductController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    /**
+     * Extrai o CID de uma URL completa ou retorna o valor original se já for um CID
+     */
+    private String extractCidFromUrl(String imageUrl) {
+        if (imageUrl == null || imageUrl.trim().isEmpty()) {
+            return null;
+        }
+
+        String trimmedUrl = imageUrl.trim();
+
+        // Se já for um CID válido, retorna como está
+        if (imageService.isValidCid(trimmedUrl)) {
+            return trimmedUrl;
+        }
+
+        // Se for uma URL completa, extrai o CID
+        if (trimmedUrl.startsWith("http")) {
+            int lastSlashIndex = trimmedUrl.lastIndexOf('/');
+            if (lastSlashIndex != -1 && lastSlashIndex < trimmedUrl.length() - 1) {
+                return trimmedUrl.substring(lastSlashIndex + 1);
+            }
+        }
+
+        return trimmedUrl;
     }
 }

@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +23,7 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final MenuRepository menuRepository;
     private final CategoryRepository categoryRepository;
+    private final ImageService imageService;
 
     public String searchProduct(String name){
         Optional<Product> existingProduct = productRepository.findByName(name);
@@ -46,7 +48,19 @@ public class ProductService {
             product.setName(productDTO.name());
             product.setDescription(productDTO.description());
             product.setPrice(productDTO.price());
-            product.setImageUrl(productDTO.imageUrl());
+
+            // Validar e armazenar apenas o CID da imagem
+            if (productDTO.imageUrl() != null && !productDTO.imageUrl().isBlank()) {
+                // Se for uma URL completa, extrair apenas o CID
+                String cid = extractCidFromUrl(productDTO.imageUrl());
+                if (imageService.isValidCid(cid)) {
+                    product.setImageUrl(cid);
+                } else {
+                    throw new IllegalArgumentException("CID da imagem inválido");
+                }
+            } else {
+                product.setImageUrl(null);
+            }
 
             if (productDTO.menuId() != null) {
                 Optional<Menu> menu = menuRepository.findById(productDTO.menuId());
@@ -67,7 +81,12 @@ public class ProductService {
     }
 
     public List<Product> listAllProducts(){
-        return productRepository.findAll();
+        List<Product> products = productRepository.findAll();
+
+
+        return products.stream()
+                .map(this::processProductImages)
+                .collect(Collectors.toList());
     }
 
     public Boolean deleteProduct(UUID id){
@@ -82,6 +101,58 @@ public class ProductService {
     }
 
     public Optional<List<Product>> listAllProductsByMenuId(UUID menuId){
-        return productRepository.findProductsByMenuId(menuId);
+        Optional<List<Product>> productsOpt = productRepository.findProductsByMenuId(menuId);
+
+        if (productsOpt.isPresent()) {
+            List<Product> products = productsOpt.get().stream()
+                    .map(this::processProductImages)
+                    .collect(Collectors.toList());
+            return Optional.of(products);
+        }
+
+        return Optional.empty();
+    }
+
+
+    private Product processProductImages(Product product) {
+
+        Product processedProduct = new Product();
+        processedProduct.setId(product.getId());
+        processedProduct.setName(product.getName());
+        processedProduct.setDescription(product.getDescription());
+        processedProduct.setPrice(product.getPrice());
+        processedProduct.setCategory(product.getCategory());
+        processedProduct.setMenu(product.getMenu());
+
+        String fullImageUrl = imageService.buildProductImageUrl(product.getImageUrl());
+        processedProduct.setImageUrl(fullImageUrl);
+
+        return processedProduct;
+    }
+
+    /**
+     * Extrai o CID de uma URL completa ou retorna o valor original se já for um CID
+     */
+    private String extractCidFromUrl(String imageUrl) {
+        if (imageUrl == null || imageUrl.trim().isEmpty()) {
+            return null;
+        }
+
+        String trimmedUrl = imageUrl.trim();
+
+
+        if (imageService.isValidCid(trimmedUrl)) {
+            return trimmedUrl;
+        }
+
+
+        if (trimmedUrl.startsWith("http")) {
+            int lastSlashIndex = trimmedUrl.lastIndexOf('/');
+            if (lastSlashIndex != -1 && lastSlashIndex < trimmedUrl.length() - 1) {
+                return trimmedUrl.substring(lastSlashIndex + 1);
+            }
+        }
+
+        return trimmedUrl;
     }
 }
