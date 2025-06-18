@@ -1,16 +1,16 @@
 package br.com.ederoliv.goeat_api.services;
 
-import br.com.ederoliv.goeat_api.dto.partner.PartnerRequestDTO;
-import br.com.ederoliv.goeat_api.dto.partner.PartnerResponseDTO;
-import br.com.ederoliv.goeat_api.dto.partner.PartnerWithCategoriesResponseDTO;
+import br.com.ederoliv.goeat_api.dto.address.AddressRequestDTO;
+import br.com.ederoliv.goeat_api.dto.partner.*;
 import br.com.ederoliv.goeat_api.dto.restaurantCategory.RestaurantCategoryResponseDTO;
-import br.com.ederoliv.goeat_api.entities.Menu;
-import br.com.ederoliv.goeat_api.entities.Partner;
-import br.com.ederoliv.goeat_api.entities.User;
+import br.com.ederoliv.goeat_api.entities.*;
 import br.com.ederoliv.goeat_api.repositories.MenuRepository;
 import br.com.ederoliv.goeat_api.repositories.PartnerRepository;
+import br.com.ederoliv.goeat_api.repositories.RestaurantCategoryRepository;
 import br.com.ederoliv.goeat_api.repositories.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +29,8 @@ public class PartnerService {
     private final UserRepository userRepository;
     private final MenuRepository menuRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuthenticationUtilsService authenticationUtilsService;
+    private final RestaurantCategoryRepository restaurantCategoryRepository;
 
     public PartnerResponseDTO getPartnerById(UUID partnerId) {
         Optional<Partner> partner = partnerRepository.findById(partnerId);
@@ -165,6 +167,180 @@ public class PartnerService {
                 partner.getId(),
                 partner.getName(),
                 partner.getPhone(),
+                categories
+        );
+    }
+
+    /**
+     * Atualiza os dados do parceiro incluindo informações básicas, endereço e categorias
+     */
+    @Transactional
+    public PartnerResponseDTO updatePartnerDetails(PartnerDetailsData detailsData, Authentication authentication) {
+        UUID partnerId = authenticationUtilsService.getPartnerIdFromAuthentication(authentication);
+        if (partnerId == null) {
+            throw new SecurityException("Não foi possível identificar o parceiro autenticado");
+        }
+
+        // Buscar o parceiro
+        Partner partner = partnerRepository.findById(partnerId)
+                .orElseThrow(() -> new EntityNotFoundException("Parceiro não encontrado"));
+
+        User user = partner.getUser();
+        if (user == null) {
+            throw new EntityNotFoundException("Dados de usuário não encontrados");
+        }
+
+        // 1. Atualizar informações básicas
+        if (detailsData.name() != null && !detailsData.name().isBlank()) {
+            partner.setName(detailsData.name());
+        }
+
+        if (detailsData.phone() != null) {
+            partner.setPhone(detailsData.phone());
+        }
+
+        if (detailsData.email() != null && !detailsData.email().isBlank() &&
+                !detailsData.email().equals(user.getUsername())) {
+            // Verificar se o email já está em uso por outro usuário
+            if (userRepository.existsByUsername(detailsData.email())) {
+                throw new IllegalArgumentException("Email já está sendo utilizado");
+            }
+
+            // Atualizar o email (username)
+            user.setUsername(detailsData.email());
+            userRepository.save(user);
+        }
+
+        // 2. Atualizar endereço se fornecido
+        if (detailsData.address() != null) {
+            updatePartnerAddress(partner, detailsData.address());
+        }
+
+        // 3. Atualizar categorias se fornecidas
+        if (detailsData.categoryIds() != null) {
+            updatePartnerCategories(partner, detailsData.categoryIds());
+        }
+
+        // Salvar o parceiro atualizado
+        Partner updatedPartner = partnerRepository.save(partner);
+
+        return new PartnerResponseDTO(updatedPartner.getId(), updatedPartner.getName());
+    }
+
+    /**
+     * Atualiza o endereço do parceiro
+     */
+    private void updatePartnerAddress(Partner partner, AddressRequestDTO addressDTO) {
+        // Verificar se o parceiro já tem um endereço
+        if (partner.getAddress() != null) {
+            // Atualizar o endereço existente
+            Address address = partner.getAddress();
+            address.setStreet(addressDTO.street());
+            address.setNumber(addressDTO.number());
+            address.setComplement(addressDTO.complement());
+            address.setNeighborhood(addressDTO.neighborhood());
+            address.setCity(addressDTO.city());
+            address.setState(addressDTO.state());
+            address.setZipCode(addressDTO.zipCode());
+            address.setReference(addressDTO.reference());
+        } else {
+            // Criar um novo endereço
+            Address address = new Address();
+            address.setStreet(addressDTO.street());
+            address.setNumber(addressDTO.number());
+            address.setComplement(addressDTO.complement());
+            address.setNeighborhood(addressDTO.neighborhood());
+            address.setCity(addressDTO.city());
+            address.setState(addressDTO.state());
+            address.setZipCode(addressDTO.zipCode());
+            address.setReference(addressDTO.reference());
+            address.setPartner(partner);
+            address.setClient(null);
+
+            partner.setAddress(address);
+        }
+    }
+
+    /**
+     * Atualiza as categorias do parceiro
+     */
+    private void updatePartnerCategories(Partner partner, List<Long> categoryIds) {
+        // Buscar as categorias pelos IDs fornecidos
+        List<RestaurantCategory> categories = restaurantCategoryRepository.findAllById(categoryIds);
+
+        // Verificar se todas as categorias foram encontradas
+        if (categories.size() != categoryIds.size()) {
+            throw new EntityNotFoundException("Uma ou mais categorias não foram encontradas");
+        }
+
+        // Atualizar as categorias do parceiro
+        partner.setRestaurantCategories(categories);
+    }
+
+    // Adicionar ao PartnerService.java
+
+    /**
+     * Obtém os dados do perfil do parceiro incluindo informações básicas, endereço e categorias
+     */
+    public PartnerDetailsResponseDTO getPartnerProfile(Authentication authentication) {
+        UUID partnerId = authenticationUtilsService.getPartnerIdFromAuthentication(authentication);
+        if (partnerId == null) {
+            throw new SecurityException("Não foi possível identificar o parceiro autenticado");
+        }
+
+        // Buscar o parceiro com todos os dados necessários
+        Partner partner = partnerRepository.findById(partnerId)
+                .orElseThrow(() -> new EntityNotFoundException("Parceiro não encontrado"));
+
+        // Formatar o endereço como string formatada
+        String formattedAddress = "";
+        if (partner.getAddress() != null) {
+            Address address = partner.getAddress();
+            StringBuilder sb = new StringBuilder();
+
+            sb.append(address.getStreet());
+
+            if (address.getNumber() != null && !address.getNumber().isEmpty()) {
+                sb.append(", ").append(address.getNumber());
+            }
+
+            if (address.getComplement() != null && !address.getComplement().isEmpty()) {
+                sb.append(", ").append(address.getComplement());
+            }
+
+            if (address.getNeighborhood() != null && !address.getNeighborhood().isEmpty()) {
+                sb.append(", ").append(address.getNeighborhood());
+            }
+
+            if (address.getCity() != null && !address.getCity().isEmpty()) {
+                sb.append(", ").append(address.getCity());
+
+                if (address.getState() != null && !address.getState().isEmpty()) {
+                    sb.append(" - ").append(address.getState());
+                }
+            }
+
+            formattedAddress = sb.toString();
+        }
+
+        // Mapear as categorias para DTOs
+        List<RestaurantCategoryResponseDTO> categories = partner.getRestaurantCategories() != null
+                ? partner.getRestaurantCategories().stream()
+                .map(category -> new RestaurantCategoryResponseDTO(
+                        category.getId(),
+                        category.getName(),
+                        category.getDescription()
+                ))
+                .collect(Collectors.toList())
+                : List.of();
+
+        // Criar e retornar o DTO com todos os dados
+        return new PartnerDetailsResponseDTO(
+                partner.getId(),
+                partner.getName(),
+                partner.getCnpj(),
+                partner.getPhone(),
+                formattedAddress,
                 categories
         );
     }

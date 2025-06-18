@@ -6,10 +6,7 @@ import br.com.ederoliv.goeat_api.dto.address.AddressResponseDTO;
 import br.com.ederoliv.goeat_api.dto.order.OrderDTO;
 import br.com.ederoliv.goeat_api.dto.order.OrderResponseDTO;
 import br.com.ederoliv.goeat_api.dto.order.OrderStatusDTO;
-import br.com.ederoliv.goeat_api.dto.partner.PartnerLoginRequestDTO;
-import br.com.ederoliv.goeat_api.dto.partner.PartnerRequestDTO;
-import br.com.ederoliv.goeat_api.dto.partner.PartnerResponseDTO;
-import br.com.ederoliv.goeat_api.dto.partner.PartnerWithCategoriesResponseDTO; // NOVO IMPORT
+import br.com.ederoliv.goeat_api.dto.partner.*;
 import br.com.ederoliv.goeat_api.entities.Partner;
 import br.com.ederoliv.goeat_api.services.*;
 import jakarta.persistence.EntityNotFoundException;
@@ -215,6 +212,49 @@ public class PartnerController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Erro ao buscar endereço: " + e.getMessage());
+        }
+    }
+
+    @PreAuthorize("hasAuthority('SCOPE_ROLE_PARTNER')")
+    @PutMapping("/profile")
+    public ResponseEntity<?> updatePartnerDetails(
+            @RequestBody PartnerDetailsData detailsData,
+            Authentication authentication) {
+        try {
+            PartnerResponseDTO response = partnerService.updatePartnerDetails(detailsData, authentication);
+            return ResponseEntity.ok(response);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Erro ao atualizar dados do restaurante", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro ao atualizar dados: " + e.getMessage());
+        }
+    }
+
+    // Adicionar ao PartnerController.java
+
+    /**
+     * Obtém os dados completos do restaurante para exibição no perfil
+     */
+    @PreAuthorize("hasAuthority('SCOPE_ROLE_PARTNER')")
+    @GetMapping("/profile")
+    public ResponseEntity<?> getPartnerProfile(Authentication authentication) {
+        try {
+            PartnerDetailsResponseDTO response = partnerService.getPartnerProfile(authentication);
+            return ResponseEntity.ok(response);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Erro ao buscar perfil do restaurante", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro ao buscar perfil: " + e.getMessage());
         }
     }
 }
