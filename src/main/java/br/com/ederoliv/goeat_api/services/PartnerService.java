@@ -2,6 +2,8 @@ package br.com.ederoliv.goeat_api.services;
 
 import br.com.ederoliv.goeat_api.dto.partner.PartnerRequestDTO;
 import br.com.ederoliv.goeat_api.dto.partner.PartnerResponseDTO;
+import br.com.ederoliv.goeat_api.dto.partner.PartnerWithCategoriesResponseDTO;
+import br.com.ederoliv.goeat_api.dto.restaurantCategory.RestaurantCategoryResponseDTO;
 import br.com.ederoliv.goeat_api.entities.Menu;
 import br.com.ederoliv.goeat_api.entities.Partner;
 import br.com.ederoliv.goeat_api.entities.User;
@@ -13,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,6 +39,16 @@ public class PartnerService {
         List<Partner> partners = partnerRepository.findAll();
         return partners.stream()
                 .map(partner -> new PartnerResponseDTO(partner.getId(), partner.getName()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Lista todos os parceiros com suas categorias
+     */
+    public List<PartnerWithCategoriesResponseDTO> listAllPartnersWithCategories() {
+        List<Partner> partners = partnerRepository.findAll();
+        return partners.stream()
+                .map(this::mapToPartnerWithCategoriesDTO)
                 .collect(Collectors.toList());
     }
 
@@ -79,6 +92,9 @@ public class PartnerService {
         partner.setPhone(request.phone());
         partner.setUser(savedUser);
 
+        // Inicializar lista de categorias como vazia (será adicionada posteriormente pelo dashboard)
+        partner.setRestaurantCategories(new ArrayList<>());
+
         // Salvar parceiro
         Partner savedPartner = partnerRepository.save(partner);
 
@@ -89,5 +105,67 @@ public class PartnerService {
         menuRepository.save(menu);
 
         return new PartnerResponseDTO(savedPartner.getId(), savedPartner.getName());
+    }
+
+    /**
+     * Lista parceiros por categoria de restaurante (ID)
+     */
+    public List<PartnerResponseDTO> getPartnersByCategory(Long categoryId) {
+        List<Partner> partners = partnerRepository.findPartnersByCategoryId(categoryId);
+        return partners.stream()
+                .map(partner -> new PartnerResponseDTO(partner.getId(), partner.getName()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Lista parceiros por nome da categoria de restaurante
+     */
+    public List<PartnerResponseDTO> getPartnersByCategoryName(String categoryName) {
+        List<Partner> partners = partnerRepository.findPartnersByCategoryName(categoryName);
+        return partners.stream()
+                .map(partner -> new PartnerResponseDTO(partner.getId(), partner.getName()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Lista parceiros por categoria com suas categorias incluídas
+     */
+    public List<PartnerWithCategoriesResponseDTO> getPartnersWithCategoriesByCategory(Long categoryId) {
+        List<Partner> partners = partnerRepository.findPartnersByCategoryId(categoryId);
+        return partners.stream()
+                .map(this::mapToPartnerWithCategoriesDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Lista parceiros que possuem categorias
+     */
+    public List<PartnerWithCategoriesResponseDTO> getPartnersWithCategories() {
+        List<Partner> partners = partnerRepository.findPartnersWithCategories();
+        return partners.stream()
+                .map(this::mapToPartnerWithCategoriesDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Mapeia Partner para PartnerWithCategoriesResponseDTO
+     */
+    private PartnerWithCategoriesResponseDTO mapToPartnerWithCategoriesDTO(Partner partner) {
+        List<RestaurantCategoryResponseDTO> categories = partner.getRestaurantCategories() != null
+                ? partner.getRestaurantCategories().stream()
+                .map(category -> new RestaurantCategoryResponseDTO(
+                        category.getId(),
+                        category.getName(),
+                        category.getDescription()
+                ))
+                .collect(Collectors.toList())
+                : new ArrayList<>();
+
+        return new PartnerWithCategoriesResponseDTO(
+                partner.getId(),
+                partner.getName(),
+                partner.getPhone(),
+                categories
+        );
     }
 }

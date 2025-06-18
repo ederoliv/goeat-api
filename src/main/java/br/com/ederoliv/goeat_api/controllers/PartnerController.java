@@ -9,6 +9,7 @@ import br.com.ederoliv.goeat_api.dto.order.OrderStatusDTO;
 import br.com.ederoliv.goeat_api.dto.partner.PartnerLoginRequestDTO;
 import br.com.ederoliv.goeat_api.dto.partner.PartnerRequestDTO;
 import br.com.ederoliv.goeat_api.dto.partner.PartnerResponseDTO;
+import br.com.ederoliv.goeat_api.dto.partner.PartnerWithCategoriesResponseDTO; // NOVO IMPORT
 import br.com.ederoliv.goeat_api.entities.Partner;
 import br.com.ederoliv.goeat_api.services.*;
 import jakarta.persistence.EntityNotFoundException;
@@ -47,6 +48,67 @@ public class PartnerController {
         return ResponseEntity.ok(partnerService.listAllPartners());
     }
 
+    /**
+     * Lista parceiros por categoria de restaurante (endpoint público)
+     */
+    @GetMapping("/by-category/{categoryId}")
+    public ResponseEntity<?> getPartnersByCategory(@PathVariable Long categoryId) {
+        try {
+            List<PartnerResponseDTO> partners = partnerService.getPartnersByCategory(categoryId);
+            return ResponseEntity.ok(partners);
+        } catch (Exception e) {
+            log.error("Erro ao buscar parceiros por categoria {}", categoryId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro ao buscar parceiros por categoria: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Lista parceiros por nome da categoria de restaurante (endpoint público)
+     */
+    @GetMapping("/by-category-name/{categoryName}")
+    public ResponseEntity<?> getPartnersByCategoryName(@PathVariable String categoryName) {
+        try {
+            List<PartnerResponseDTO> partners = partnerService.getPartnersByCategoryName(categoryName);
+            return ResponseEntity.ok(partners);
+        } catch (Exception e) {
+            log.error("Erro ao buscar parceiros por categoria {}", categoryName, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro ao buscar parceiros por categoria: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Lista parceiros com suas categorias por categoria específica (endpoint público)
+     */
+    @GetMapping("/with-categories/by-category/{categoryId}")
+    public ResponseEntity<?> getPartnersWithCategoriesByCategory(@PathVariable Long categoryId) {
+        try {
+            List<PartnerWithCategoriesResponseDTO> partners =
+                    partnerService.getPartnersWithCategoriesByCategory(categoryId);
+            return ResponseEntity.ok(partners);
+        } catch (Exception e) {
+            log.error("Erro ao buscar parceiros com categorias por categoria {}", categoryId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro ao buscar parceiros com categorias: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Lista todos os parceiros que possuem pelo menos uma categoria (endpoint público)
+     */
+    @GetMapping("/with-categories")
+    public ResponseEntity<?> getPartnersWithCategories() {
+        try {
+            List<PartnerWithCategoriesResponseDTO> partners =
+                    partnerService.getPartnersWithCategories();
+            return ResponseEntity.ok(partners);
+        } catch (Exception e) {
+            log.error("Erro ao buscar parceiros com categorias", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro ao buscar parceiros com categorias: " + e.getMessage());
+        }
+    }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody PartnerLoginRequestDTO request) {
@@ -105,12 +167,11 @@ public class PartnerController {
     @PreAuthorize("hasAuthority('SCOPE_ROLE_PARTNER')")
     @GetMapping("/{id}/orders/{orderId}")
     public ResponseEntity<?> getOrderById(@PathVariable UUID id, @PathVariable Long orderId) {
-
         OrderResponseDTO orderResponseDTO = orderService.getOrderById(orderId);
 
         if (orderResponseDTO == null) {
             return ResponseEntity.badRequest().body("Erro ao buscar o parceiro");
-        }else {
+        } else {
             return ResponseEntity.ok(orderResponseDTO);
         }
     }
@@ -118,9 +179,7 @@ public class PartnerController {
     @PreAuthorize("hasAuthority('SCOPE_ROLE_PARTNER')")
     @PutMapping("/{id}/orders")
     public ResponseEntity<?> updateOrderPartner(@PathVariable UUID id, @RequestBody OrderStatusDTO orderStatusDTO) {
-
         return ResponseEntity.ok().body(orderService.updateOrderStatus(orderStatusDTO.id(), orderStatusDTO.status()));
-
     }
 
     @PreAuthorize("hasAuthority('SCOPE_ROLE_PARTNER')")

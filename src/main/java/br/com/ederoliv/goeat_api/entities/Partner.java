@@ -34,7 +34,6 @@ public class Partner {
 
     private String phone;
 
-
     @OneToOne(mappedBy = "partner", cascade = CascadeType.ALL)
     @JsonBackReference
     private Address address;
@@ -51,4 +50,14 @@ public class Partner {
     @OneToMany(mappedBy = "partner", cascade = CascadeType.ALL)
     @JsonManagedReference
     private List<Order> orders;
+
+    // Relacionamento many-to-many com RestaurantCategory
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "partner_restaurant_category",
+            joinColumns = @JoinColumn(name = "partner_id"),
+            inverseJoinColumns = @JoinColumn(name = "restaurant_category_id")
+    )
+    @JsonManagedReference
+    private List<RestaurantCategory> restaurantCategories;
 }

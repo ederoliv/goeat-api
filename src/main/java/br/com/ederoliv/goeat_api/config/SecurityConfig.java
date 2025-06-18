@@ -56,10 +56,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/partners/address").permitAll()
                         .requestMatchers(HttpMethod.POST,"/api/v1/partners/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/partners/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/partners").permitAll()
+                        .requestMatchers(HttpMethod.POST,"/api/v1/partners").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/menus/{menuId}/categories").permitAll()
                         .requestMatchers(HttpMethod.POST,"/api/v1/clients/login").permitAll()
                         .requestMatchers(HttpMethod.POST,"/api/v1/clients/register").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/restaurant-categories").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/partners/by-category/{categoryId}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/partners/by-category-name/{categoryName}").permitAll()
 
 
                         // Qualquer outra requisição precisa de autenticação
