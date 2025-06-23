@@ -34,6 +34,11 @@ public class Partner {
 
     private String phone;
 
+    // Alterado de boolean (primitivo) para Boolean (objeto)
+    // Isso permite valores nulos, e definimos um valor padrão no getter
+    @Column(name = "is_open")
+    private Boolean isOpen;
+
     @OneToOne(mappedBy = "partner", cascade = CascadeType.ALL)
     @JsonBackReference
     private Address address;
@@ -51,6 +56,10 @@ public class Partner {
     @JsonManagedReference
     private List<Order> orders;
 
+    @OneToMany(mappedBy = "partner", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<OperatingHours> operatingHours;
+
     // Relacionamento many-to-many com RestaurantCategory
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -60,4 +69,14 @@ public class Partner {
     )
     @JsonManagedReference
     private List<RestaurantCategory> restaurantCategories;
+
+    // Getter com valor padrão para evitar NPE
+    public boolean isOpen() {
+        return isOpen != null ? isOpen : true; // Default para true se for null
+    }
+
+    // Setter modificado para garantir que nunca será null
+    public void setOpen(Boolean open) {
+        this.isOpen = open != null ? open : true;
+    }
 }

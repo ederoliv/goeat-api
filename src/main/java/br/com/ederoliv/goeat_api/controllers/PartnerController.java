@@ -8,6 +8,7 @@ import br.com.ederoliv.goeat_api.dto.order.OrderResponseDTO;
 import br.com.ederoliv.goeat_api.dto.order.OrderStatusDTO;
 import br.com.ederoliv.goeat_api.dto.partner.*;
 import br.com.ederoliv.goeat_api.entities.Partner;
+import br.com.ederoliv.goeat_api.repositories.PartnerRepository;
 import br.com.ederoliv.goeat_api.services.*;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +21,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -33,10 +36,25 @@ public class PartnerController {
     private final AddressService addressService;
     private final PartnerService partnerService;
     private final AuthenticationService authenticationService;
+    private final OperatingHoursService operatingHoursService;
+    private final PartnerRepository partnerRepository;
+
+
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getPartnerById(@PathVariable UUID id) {
-        PartnerResponseDTO response = partnerService.getPartnerById(id);
+        Partner partner = partnerRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Parceiro não encontrado"));
+
+        // Verificar se o parceiro está aberto no momento
+        boolean isOpenNow = operatingHoursService.isPartnerOpenNow(id) && partner.isOpen();
+
+        PartnerResponseDTO response = new PartnerResponseDTO(
+                partner.getId(),
+                partner.getName(),
+                isOpenNow
+        );
+
         return ResponseEntity.ok(response);
     }
 
@@ -255,6 +273,31 @@ public class PartnerController {
             log.error("Erro ao buscar perfil do restaurante", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Erro ao buscar perfil: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/{id}/status")
+    public ResponseEntity<?> getPartnerStatus(@PathVariable UUID id) {
+        try {
+            Partner partner = partnerRepository.findById(id)
+                    .orElseThrow(() -> new EntityNotFoundException("Parceiro não encontrado"));
+
+            // Verificar se o parceiro está aberto no momento
+            boolean isOpenNow = operatingHoursService.isPartnerOpenNow(id);
+            boolean manuallyOpen = partner.isOpen();
+
+            Map<String, Boolean> response = new HashMap<>();
+            response.put("isOpenNow", isOpenNow && manuallyOpen);
+            response.put("isScheduleOpen", isOpenNow);
+            response.put("isManuallyOpen", manuallyOpen);
+
+            return ResponseEntity.ok(response);
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Erro ao obter status do parceiro {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro ao obter status: " + e.getMessage());
         }
     }
 }

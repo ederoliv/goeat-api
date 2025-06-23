@@ -9,5 +9,6 @@ public record PartnerWithCategoriesResponseDTO(
         UUID id,
         String name,
         String phone,
+        boolean isOpen,
         List<RestaurantCategoryResponseDTO> categories
 ) {}

@@ -31,16 +31,36 @@ public class PartnerService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationUtilsService authenticationUtilsService;
     private final RestaurantCategoryRepository restaurantCategoryRepository;
+    private final OperatingHoursService operatingHoursService;
+
 
     public PartnerResponseDTO getPartnerById(UUID partnerId) {
-        Optional<Partner> partner = partnerRepository.findById(partnerId);
-        return partner.map(p -> new PartnerResponseDTO(p.getId(), p.getName())).orElse(null);
+        Optional<Partner> partnerOpt = partnerRepository.findById(partnerId);
+
+        if (partnerOpt.isEmpty()) {
+            return null;
+        }
+
+        Partner partner = partnerOpt.get();
+
+        // Verificar se o parceiro está aberto no momento
+        boolean isOpenNow = operatingHoursService.isPartnerOpenNow(partnerId);
+
+        return new PartnerResponseDTO(
+                partner.getId(),
+                partner.getName(),
+                isOpenNow && partner.isOpen() // Está aberto se ambas condições forem verdadeiras
+        );
     }
 
     public List<PartnerResponseDTO> listAllPartners() {
         List<Partner> partners = partnerRepository.findAll();
         return partners.stream()
-                .map(partner -> new PartnerResponseDTO(partner.getId(), partner.getName()))
+                .map(partner -> new PartnerResponseDTO(
+                        partner.getId(),
+                        partner.getName(),
+                        operatingHoursService.isPartnerOpenNow(partner.getId()) && partner.isOpen()
+                ))
                 .collect(Collectors.toList());
     }
 
@@ -106,26 +126,34 @@ public class PartnerService {
         menu.setDescription("Menu principal");
         menuRepository.save(menu);
 
-        return new PartnerResponseDTO(savedPartner.getId(), savedPartner.getName());
+        operatingHoursService.initializeDefaultHours(savedPartner);
+
+        return new PartnerResponseDTO(
+                savedPartner.getId(),
+                savedPartner.getName(),
+                true
+        );
     }
 
-    /**
-     * Lista parceiros por categoria de restaurante (ID)
-     */
     public List<PartnerResponseDTO> getPartnersByCategory(Long categoryId) {
         List<Partner> partners = partnerRepository.findPartnersByCategoryId(categoryId);
         return partners.stream()
-                .map(partner -> new PartnerResponseDTO(partner.getId(), partner.getName()))
+                .map(partner -> new PartnerResponseDTO(
+                        partner.getId(),
+                        partner.getName(),
+                        operatingHoursService.isPartnerOpenNow(partner.getId()) && partner.isOpen()
+                ))
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Lista parceiros por nome da categoria de restaurante
-     */
     public List<PartnerResponseDTO> getPartnersByCategoryName(String categoryName) {
         List<Partner> partners = partnerRepository.findPartnersByCategoryName(categoryName);
         return partners.stream()
-                .map(partner -> new PartnerResponseDTO(partner.getId(), partner.getName()))
+                .map(partner -> new PartnerResponseDTO(
+                        partner.getId(),
+                        partner.getName(),
+                        operatingHoursService.isPartnerOpenNow(partner.getId()) && partner.isOpen()
+                ))
                 .collect(Collectors.toList());
     }
 
@@ -149,9 +177,7 @@ public class PartnerService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Mapeia Partner para PartnerWithCategoriesResponseDTO
-     */
+
     private PartnerWithCategoriesResponseDTO mapToPartnerWithCategoriesDTO(Partner partner) {
         List<RestaurantCategoryResponseDTO> categories = partner.getRestaurantCategories() != null
                 ? partner.getRestaurantCategories().stream()
@@ -163,10 +189,14 @@ public class PartnerService {
                 .collect(Collectors.toList())
                 : new ArrayList<>();
 
+
+        boolean isOpenNow = operatingHoursService.isPartnerOpenNow(partner.getId()) && partner.isOpen();
+
         return new PartnerWithCategoriesResponseDTO(
                 partner.getId(),
                 partner.getName(),
                 partner.getPhone(),
+                isOpenNow,
                 categories
         );
     }
@@ -211,12 +241,12 @@ public class PartnerService {
             userRepository.save(user);
         }
 
-        // 2. Atualizar endereço se fornecido
+
         if (detailsData.address() != null) {
             updatePartnerAddress(partner, detailsData.address());
         }
 
-        // 3. Atualizar categorias se fornecidas
+
         if (detailsData.categoryIds() != null) {
             updatePartnerCategories(partner, detailsData.categoryIds());
         }
@@ -224,7 +254,7 @@ public class PartnerService {
         // Salvar o parceiro atualizado
         Partner updatedPartner = partnerRepository.save(partner);
 
-        return new PartnerResponseDTO(updatedPartner.getId(), updatedPartner.getName());
+        return new PartnerResponseDTO(updatedPartner.getId(), updatedPartner.getName(), updatedPartner.isOpen());
     }
 
     /**
@@ -244,7 +274,7 @@ public class PartnerService {
             address.setZipCode(addressDTO.zipCode());
             address.setReference(addressDTO.reference());
         } else {
-            // Criar um novo endereço
+
             Address address = new Address();
             address.setStreet(addressDTO.street());
             address.setNumber(addressDTO.number());
@@ -261,27 +291,21 @@ public class PartnerService {
         }
     }
 
-    /**
-     * Atualiza as categorias do parceiro
-     */
+
     private void updatePartnerCategories(Partner partner, List<Long> categoryIds) {
-        // Buscar as categorias pelos IDs fornecidos
+
         List<RestaurantCategory> categories = restaurantCategoryRepository.findAllById(categoryIds);
 
-        // Verificar se todas as categorias foram encontradas
+
         if (categories.size() != categoryIds.size()) {
             throw new EntityNotFoundException("Uma ou mais categorias não foram encontradas");
         }
 
-        // Atualizar as categorias do parceiro
+
         partner.setRestaurantCategories(categories);
     }
 
-    // Adicionar ao PartnerService.java
 
-    /**
-     * Obtém os dados do perfil do parceiro incluindo informações básicas, endereço e categorias
-     */
     public PartnerDetailsResponseDTO getPartnerProfile(Authentication authentication) {
         UUID partnerId = authenticationUtilsService.getPartnerIdFromAuthentication(authentication);
         if (partnerId == null) {
