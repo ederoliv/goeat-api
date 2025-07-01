@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -51,6 +52,29 @@ public class OrderController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Erro ao buscar pedidos: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/{orderId}/status")
+    public ResponseEntity<?> getOrderStatus(@PathVariable Long orderId) {
+        try {
+            OrderResponseDTO order = orderService.getOrderById(orderId);
+
+            if (order == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("error", "Pedido não encontrado"));
+            }
+
+            // Retorna apenas o status do pedido
+            Map<String, Object> statusResponse = Map.of(
+                    "status", order.orderStatus().toString()
+            );
+
+            return ResponseEntity.ok(statusResponse);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Erro interno do servidor"));
         }
     }
 }

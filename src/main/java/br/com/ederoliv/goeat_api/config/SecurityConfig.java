@@ -63,6 +63,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/restaurant-categories").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/partners/by-category/{categoryId}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/partners/by-category-name/{categoryName}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "api/v1/orders/{orderId}/status").permitAll()
 
 
                         // Qualquer outra requisição precisa de autenticação
