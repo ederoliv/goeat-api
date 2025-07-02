@@ -177,7 +177,9 @@ public class PartnerService {
                 .collect(Collectors.toList());
     }
 
-
+    /**
+     * Mapeia Partner para PartnerWithCategoriesResponseDTO
+     */
     private PartnerWithCategoriesResponseDTO mapToPartnerWithCategoriesDTO(Partner partner) {
         List<RestaurantCategoryResponseDTO> categories = partner.getRestaurantCategories() != null
                 ? partner.getRestaurantCategories().stream()

@@ -125,8 +125,8 @@ public class PartnerController {
     }
 
     @GetMapping
-    public ResponseEntity<List<PartnerResponseDTO>> getAllPartners() {
-        return ResponseEntity.ok(partnerService.listAllPartners());
+    public ResponseEntity<List<PartnerWithCategoriesResponseDTO>> getAllPartners() {
+        return ResponseEntity.ok(partnerService.listAllPartnersWithCategories());
     }
 
     /**
