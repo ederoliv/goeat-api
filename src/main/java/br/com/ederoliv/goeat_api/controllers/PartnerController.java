@@ -245,7 +245,7 @@ public class PartnerController {
         return ResponseEntity.ok(responseDTOList);
     }
 
-    @PreAuthorize("hasAuthority('SCOPE_ROLE_PARTNER')")
+    @PreAuthorize("hasAnyAuthority('SCOPE_ROLE_CLIENT', 'SCOPE_ROLE_PARTNER')")
     @GetMapping("/{id}/orders/{orderId}")
     public ResponseEntity<?> getOrderById(@PathVariable UUID id, @PathVariable Long orderId) {
         OrderResponseDTO orderResponseDTO = orderService.getOrderById(orderId);
