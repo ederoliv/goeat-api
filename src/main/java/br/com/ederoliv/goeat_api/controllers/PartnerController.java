@@ -3,10 +3,12 @@ package br.com.ederoliv.goeat_api.controllers;
 import br.com.ederoliv.goeat_api.dto.AuthResponseDTO;
 import br.com.ederoliv.goeat_api.dto.address.AddressRequestDTO;
 import br.com.ederoliv.goeat_api.dto.address.AddressResponseDTO;
+import br.com.ederoliv.goeat_api.dto.operatingHours.OperatingHoursResponseDTO;
 import br.com.ederoliv.goeat_api.dto.order.OrderDTO;
 import br.com.ederoliv.goeat_api.dto.order.OrderResponseDTO;
 import br.com.ederoliv.goeat_api.dto.order.OrderStatusDTO;
 import br.com.ederoliv.goeat_api.dto.partner.*;
+import br.com.ederoliv.goeat_api.entities.OperatingHours;
 import br.com.ederoliv.goeat_api.entities.Partner;
 import br.com.ederoliv.goeat_api.repositories.PartnerRepository;
 import br.com.ederoliv.goeat_api.services.*;
@@ -21,10 +23,12 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -39,7 +43,7 @@ public class PartnerController {
     private final OperatingHoursService operatingHoursService;
     private final PartnerRepository partnerRepository;
 
-
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getPartnerById(@PathVariable UUID id) {
@@ -56,6 +60,68 @@ public class PartnerController {
         );
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/details")
+    public ResponseEntity<?> getPartnerDetails(@PathVariable UUID id) {
+        try {
+            Partner partner = partnerRepository.findById(id)
+                    .orElseThrow(() -> new EntityNotFoundException("Parceiro não encontrado"));
+
+            // Verificar se o parceiro está aberto no momento
+            boolean isOpenNow = operatingHoursService.isPartnerOpenNow(id) && partner.isOpen();
+
+            // Buscar endereço completo formatado
+            String fullAddress = addressService.getFullAddress(id);
+            if (fullAddress == null) {
+                fullAddress = "Endereço não cadastrado";
+            }
+
+            // Buscar horários de funcionamento
+            List<OperatingHours> operatingHoursList = operatingHoursService.getOperatingHours(id).schedules()
+                    .stream()
+                    .map(dto -> {
+                        OperatingHours hours = new OperatingHours();
+                        hours.setId(dto.id());
+                        hours.setDayOfWeek(dto.dayOfWeek());
+                        hours.setOpen(dto.isOpen());
+                        if (dto.openingTime() != null) {
+                            hours.setOpeningTime(java.time.LocalTime.parse(dto.openingTime(), TIME_FORMATTER));
+                        }
+                        if (dto.closingTime() != null) {
+                            hours.setClosingTime(java.time.LocalTime.parse(dto.closingTime(), TIME_FORMATTER));
+                        }
+                        return hours;
+                    })
+                    .collect(Collectors.toList());
+
+            // Converter para DTO de resposta
+            List<OperatingHoursResponseDTO> operatingHoursDTO = operatingHoursList.stream()
+                    .map(hours -> new OperatingHoursResponseDTO(
+                            hours.getId(),
+                            hours.getDayOfWeek(),
+                            hours.isOpen(),
+                            hours.getOpeningTime() != null ? hours.getOpeningTime().format(TIME_FORMATTER) : null,
+                            hours.getClosingTime() != null ? hours.getClosingTime().format(TIME_FORMATTER) : null
+                    ))
+                    .collect(Collectors.toList());
+
+            PartnerDetailedResponseDTO response = new PartnerDetailedResponseDTO(
+                    partner.getId(),
+                    partner.getName(),
+                    isOpenNow,
+                    fullAddress,
+                    operatingHoursDTO
+            );
+
+            return ResponseEntity.ok(response);
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Erro ao buscar detalhes do parceiro {}", id, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro ao buscar detalhes do restaurante: " + e.getMessage());
+        }
     }
 
     @GetMapping
@@ -254,11 +320,6 @@ public class PartnerController {
         }
     }
 
-    // Adicionar ao PartnerController.java
-
-    /**
-     * Obtém os dados completos do restaurante para exibição no perfil
-     */
     @PreAuthorize("hasAuthority('SCOPE_ROLE_PARTNER')")
     @GetMapping("/profile")
     public ResponseEntity<?> getPartnerProfile(Authentication authentication) {

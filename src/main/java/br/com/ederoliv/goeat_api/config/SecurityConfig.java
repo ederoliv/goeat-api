@@ -53,6 +53,7 @@ public class SecurityConfig {
                         //.requestMatchers("/authenticate").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/partners/{partnerId}/products").permitAll()
                         .requestMatchers(HttpMethod.POST,"/api/v1/partners/{id}/orders").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/partners/{id}/details").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/partners/address").permitAll()
                         .requestMatchers(HttpMethod.POST,"/api/v1/partners/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/partners/**").permitAll()
@@ -63,7 +64,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/restaurant-categories").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/partners/by-category/{categoryId}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/partners/by-category-name/{categoryName}").permitAll()
-                        .requestMatchers(HttpMethod.GET, "api/v1/orders/{orderId}/status").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/orders/{orderId}/status").permitAll()
+
 
 
                         // Qualquer outra requisição precisa de autenticação
