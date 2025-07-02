@@ -19,6 +19,12 @@ RUN mvn clean verify -DskipTests \
 # Etapa 2: Criação da imagem final com a JAR construída
 FROM openjdk:17-alpine
 
+ENV TZ=America/Sao_Paulo
+
+RUN apk add --no-cache tzdata
+
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 # Copie o arquivo JAR do estágio anterior
 COPY --from=builder /app/target/*.jar goeat-api.jar
 
